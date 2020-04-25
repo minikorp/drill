@@ -33,12 +33,11 @@ git pull
 git pull --tags
 require_clean_work_tree "Generate release"
 
-# Clean build succeeds
 cd .. # move to project root
 ./gradlew clean build test || exit 1
-cd "$(dirname "$0")" || exit
 
 # bump version and push
-./bump-tag.sh minor
+cd "$(dirname "$0")" || exit
+./bump-tag.sh patch
 git push --tags
 git push
