@@ -2,6 +2,8 @@ package mini.drill.processor
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import java.io.ByteArrayOutputStream
+import java.io.PrintStream
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.Element
 import javax.lang.model.element.ElementKind
@@ -18,6 +20,12 @@ import javax.tools.StandardLocation
 
 inline fun takeOrEmpty(text: String, crossinline check: () -> Boolean): String {
     return if (check()) text else ""
+}
+
+fun Throwable.stackTraceString(): String {
+    val out = ByteArrayOutputStream()
+    printStackTrace(PrintStream(out))
+    return out.toString()
 }
 
 lateinit var env: ProcessingEnvironment
@@ -101,7 +109,17 @@ fun FileSpec.writeToFile(vararg sourceElements: Element) {
     openWriter.close()
 }
 
-val UNCHECKED = AnnotationSpec.builder(Suppress::class).addMember("%S", "UNCHECKED_CAST").build()
+
+fun suppressAnnotation(vararg warnings: String): AnnotationSpec {
+    return AnnotationSpec.builder(Suppress::class).apply {
+        warnings.forEach {
+            addMember("%S", it)
+        }
+    }.build()
+}
+
+val UNCHECKED = suppressAnnotation("UNCHECKED_CAST")
+val NAME_SHADOWING = suppressAnnotation("NAME_SHADOWING")
 val KOTLIN_LIST = ClassName("kotlin.collections", "List")
 val KOTLIN_MUTABLE_LIST = ClassName("kotlin.collections", "MutableList")
 val KOTLIN_MAP = ClassName("kotlin.collections", "Map")

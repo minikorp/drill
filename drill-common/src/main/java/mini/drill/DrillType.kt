@@ -1,22 +1,23 @@
 package mini.drill
 
+@Suppress("PropertyName")
 interface DrillType<T> {
 
-    /** Used by generated code, do not modify */
-    var refDrill: T
+    /** @hide */
+    var _ref: T
 
-    /** Used by generated code, do not modify */
-    var dirtyDrill: Boolean
+    /** @hide */
+    var _dirty: Boolean
 
-    /** Used by generated code, do not modify */
-    val parentDrill: DrillType<*>?
+    /** @hide */
+    val _parent: DrillType<*>?
 
     /**
      * Update the underlying value with a new reference that will be kept when freezing.
      */
     fun set(value: T) {
-        dirtyDrill = false
-        refDrill = value
+        _dirty = false
+        _ref = value
     }
 
     /**
@@ -28,10 +29,9 @@ interface DrillType<T> {
      * Mark object as dirty recreating the object when frozen.
      */
     fun markDirty() {
-        if (!dirtyDrill) {
-            dirtyDrill = true
-            parentDrill?.markDirty()
+        if (!_dirty) {
+            _dirty = true
+            _parent?.markDirty()
         }
     }
 }
-

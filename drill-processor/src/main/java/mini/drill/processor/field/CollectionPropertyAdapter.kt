@@ -1,24 +1,56 @@
-package mini.drill.processor
+package mini.drill.processor.field
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import mini.drill.DrillList
 import mini.drill.DrillMap
+import mini.drill.processor.MutablePropertyModel
+import mini.drill.processor.NAME_SHADOWING
+import mini.drill.processor.ProcessorState
+import mini.drill.processor.UNCHECKED
 
 @KotlinPoetMetadataPreview
-class MutableCollectionFieldModel(
-    container: MutableClassModel,
-    sourceProp: PropertySpec
-) : MutableFieldModel(container, sourceProp) {
+class CollectionPropertyAdapter(sourceProp: MutablePropertyModel) : PropertyAdapter(sourceProp) {
+
+    companion object {
+        private val listGenerator = { from: ParameterizedTypeName, to: TypeName ->
+            DrillList::class
+                .asClassName()
+                .parameterizedBy(
+                    from.typeArguments[0],
+                    to
+                ).copy(nullable = from.isNullable)
+        }
+
+        private val mapGenerator = { from: ParameterizedTypeName, to: TypeName ->
+            DrillMap::class
+                .asClassName()
+                .parameterizedBy(
+                    from.typeArguments[0],
+                    from.typeArguments[1],
+                    to
+                ).copy(nullable = from.isNullable)
+
+        }
+
+        val supportedAdapters = mapOf<TypeName, (ParameterizedTypeName, TypeName) -> TypeName>(
+            LIST to listGenerator,
+            MAP to mapGenerator
+        )
+
+        fun supportsType(type: TypeName): Boolean {
+            return type is ParameterizedTypeName && supportedAdapters.containsKey(type.rawType)
+        }
+    }
 
     private val recursiveType = generateRecursiveType(sourceProp.type)
 
     override val freezeExpression: CodeBlock
         get() = CodeBlock.of(
-            "if ($backingFieldName === %T) " +
-                    "$sourceMemberName " +
-                    "else ($backingFieldName as %T)${call}freeze()",
+            "if ($backingPropertyName === %T) " +
+                    "$refPropertyAccessor " +
+                    "else ($backingPropertyName as %T)${call}freeze()",
             unsetClassName,
             recursiveType.type.copy(nullable = nullable)
         )
@@ -26,25 +58,27 @@ class MutableCollectionFieldModel(
     override fun generate(builder: TypeSpec.Builder) {
         val mutateBlock = recursiveType.mutate
         val accessorField = PropertySpec.builder(sourceProp.name, recursiveType.type)
+            .addKdoc(refPropertyKdoc)
             .mutable(false)
             .getter(
                 FunSpec.getterBuilder()
                     .addAnnotation(UNCHECKED)
                     .beginControlFlow(
-                        "if (${backingFieldName} === %T)", unsetClassName
+                        "if (${backingPropertyName} === %T)", unsetClassName
                     )
-                    .addStatement("$backingFieldName = ${sourceMemberName}.let { ")
+                    .addStatement("$backingPropertyName = ${refPropertyAccessor}.let { ")
                     .addStatement("val container = this")
                     .addCode(mutateBlock).addCode(" }")
                     .endControlFlow()
-                    .addStatement("return $backingFieldName as %T", recursiveType.type)
+                    .addStatement("return $backingPropertyName as %T", recursiveType.type)
                     .build()
             ).build()
 
         val setterFunction = FunSpec.builder("set" + sourceProp.name.capitalize())
+            .addAnnotation(NAME_SHADOWING)
             .addParameter(sourceProp.name, sourceProp.type)
             .addStatement("val param = ${sourceProp.name}")
-            .addCode("$backingFieldName = param.let { ")
+            .addCode("$backingPropertyName = param.let { ")
             .addStatement("val container = this")
             .addCode(mutateBlock)
             .addCode(" }\n")
@@ -57,10 +91,9 @@ class MutableCollectionFieldModel(
     }
 
     private fun generateRecursiveType(type: TypeName): RecursiveType {
-        val nestedModel = ProcessorState.findMutableModel(type)
-
         val call = if (type.isNullable) "?." else "."
 
+        val nestedModel = ProcessorState.findMutableClass(type)
         if (nestedModel != null) {
             val nestedTypeName = nestedModel.mutableClassType.copy(nullable = type.isNullable)
             return RecursiveType(
@@ -71,38 +104,12 @@ class MutableCollectionFieldModel(
         }
 
         if (type is ParameterizedTypeName) {
-            if (type.rawType == LIST) {
-                val param = generateRecursiveType(type.typeArguments[0])
-                val listType = DrillList::class
-                    .asClassName()
-                    .parameterizedBy(
-                        type.typeArguments[0],
-                        param.type
-                    ).copy(nullable = type.isNullable)
-
+            val adapter = supportedAdapters[type.rawType]
+            if (adapter != null) {
+                val param = generateRecursiveType(type.typeArguments.last())
+                val collectionType = adapter(type, param.type)
                 return RecursiveType(
-                    type = listType,
-                    mutate = CodeBlock.of(
-                        "it${call}toMutable(container, " +
-                                "mutate={ container, it -> ${param.mutate} }," +
-                                "freeze={ ${param.freeze} } )"
-                    ),
-                    freeze = CodeBlock.of("it${call}freeze()")
-                )
-            }
-
-            if (type.rawType == MAP) {
-                val param = generateRecursiveType(type.typeArguments[1])
-                val mapType = DrillMap::class
-                    .asClassName()
-                    .parameterizedBy(
-                        type.typeArguments[0],
-                        type.typeArguments[1],
-                        param.type
-                    ).copy(nullable = type.isNullable)
-
-                return RecursiveType(
-                    type = mapType,
+                    type = collectionType,
                     mutate = CodeBlock.of(
                         "it${call}toMutable(container, " +
                                 "mutate={ container, it -> ${param.mutate} }," +

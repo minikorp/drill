@@ -6,24 +6,24 @@ import kotlin.collections.HashMap
 
 @Suppress("UNCHECKED_CAST")
 class DrillMap<K, Immutable, Mutable>(
-    override var refDrill: Map<K, Immutable>,
-    override val parentDrill: DrillType<*>?,
+    override var _ref: Map<K, Immutable>,
+    override val _parent: DrillType<*>?,
     private val mutate: (container: DrillType<*>, Immutable) -> Mutable,
     private val freeze: (Mutable) -> Immutable
 ) : MutableMap<K, Mutable>, DrillType<Map<K, Immutable>> {
 
     private inner class Entry(
         override val key: K,
-        override var refDrill: Immutable
+        override var _ref: Immutable
     ) : DrillType<Immutable>, MutableMap.MutableEntry<K, Mutable> {
-        override val parentDrill = this@DrillMap
+        override val _parent = this@DrillMap
         var backing: Any? = UNSET_VALUE
-        override var dirtyDrill = false
+        override var _dirty = false
 
         override var value: Mutable
             get() {
                 if (backing === UNSET_VALUE) {
-                    backing = refDrill.run { mutate(this@Entry, this) }
+                    backing = _ref.run { mutate(this@Entry, this) }
                 }
                 return backing as Mutable
             }
@@ -33,13 +33,13 @@ class DrillMap<K, Immutable, Mutable>(
             }
 
         override fun freeze(): Immutable {
-            if (dirtyDrill) return freeze(value)
-            return refDrill
+            if (_dirty) return freeze(value)
+            return _ref
         }
 
         override fun setValue(newValue: Mutable): Mutable {
             value = newValue
-            dirtyDrill = true
+            _dirty = true
             return newValue
         }
 
@@ -52,17 +52,17 @@ class DrillMap<K, Immutable, Mutable>(
         }
     }
 
-    override var dirtyDrill: Boolean = false
+    override var _dirty: Boolean = false
 
     private val items: HashMap<K, Entry> by lazy {
-        refDrill.mapValuesTo(HashMap()) { Entry(it.key, it.value) }
+        _ref.mapValuesTo(HashMap()) { Entry(it.key, it.value) }
     }
 
     override fun freeze(): Map<K, Immutable> {
-        return if (dirtyDrill) {
+        return if (_dirty) {
             items.mapValuesTo(HashMap()) { it.value.freeze() }
         } else {
-            return refDrill
+            return _ref
         }
     }
 

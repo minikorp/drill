@@ -3,22 +3,22 @@ package mini.drill
 
 @Suppress("UNCHECKED_CAST")
 class DrillList<Immutable, Mutable>(
-    override var refDrill: List<Immutable>,
-    override val parentDrill: DrillType<*>?,
+    override var _ref: List<Immutable>,
+    override val _parent: DrillType<*>?,
     private val mutate: (container: DrillType<*>, Immutable) -> Mutable,
     private val freeze: (Mutable) -> Immutable
 ) : MutableCollection<Mutable>, DrillType<List<Immutable>> {
 
     private inner class Entry(
-        override var refDrill: Immutable
+        override var _ref: Immutable
     ) : DrillType<Immutable> {
-        override val parentDrill = this@DrillList
+        override val _parent = this@DrillList
         var backing: Any? = UNSET_VALUE
-        override var dirtyDrill = false
+        override var _dirty = false
         var value: Mutable
             get() {
                 if (backing === UNSET_VALUE) {
-                    backing = refDrill.run { mutate(this@Entry, this) }
+                    backing = _ref.run { mutate(this@Entry, this) }
                 }
                 return backing as Mutable
             }
@@ -28,22 +28,22 @@ class DrillList<Immutable, Mutable>(
             }
 
         override fun freeze(): Immutable {
-            if (dirtyDrill) return freeze(value)
-            return refDrill
+            if (_dirty) return freeze(value)
+            return _ref
         }
     }
 
-    override var dirtyDrill = false
+    override var _dirty = false
 
     private val items: ArrayList<Entry> by lazy {
-        refDrill.mapTo(ArrayList()) { Entry(it) }
+        _ref.mapTo(ArrayList()) { Entry(it) }
     }
 
     override fun freeze(): List<Immutable> {
-        return if (dirtyDrill) {
+        return if (_dirty) {
             items.map { it.freeze() }
         } else {
-            refDrill
+            _ref
         }
     }
 
@@ -85,7 +85,7 @@ class DrillList<Immutable, Mutable>(
     }
 
     fun remove(element: Immutable) {
-        items.removeIf { it.refDrill == element }.apply { markDirty() }
+        items.removeIf { it._ref == element }.apply { markDirty() }
     }
 
     override fun removeAll(elements: Collection<Mutable>): Boolean {
@@ -98,7 +98,7 @@ class DrillList<Immutable, Mutable>(
     }
 
     fun retainAll(elements: Collection<Immutable>) {
-        items.retainAll { elements.contains(it.refDrill) }.apply { markDirty() }
+        items.retainAll { elements.contains(it._ref) }.apply { markDirty() }
     }
 
     override fun add(element: Mutable): Boolean {

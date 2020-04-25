@@ -5,8 +5,7 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import com.squareup.kotlinpoet.metadata.specs.toTypeSpec
 import mini.drill.DrillType
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
+import mini.drill.processor.field.PropertyAdapter
 import javax.lang.model.element.TypeElement
 
 @KotlinPoetMetadataPreview
@@ -14,10 +13,9 @@ data class MutableClassModel(val typeElement: TypeElement) {
 
     companion object {
         const val SUFFIX = "_Mutable"
-        const val PREFIX = "__"
-        val SOURCE_PROPERTY = DrillType<*>::refDrill.name
-        val DIRTY_PROPERTY = DrillType<*>::dirtyDrill.name
-        val PARENT_PROPERTY = DrillType<*>::parentDrill.name
+        val SOURCE_PROPERTY = DrillType<*>::_ref.name
+        val DIRTY_PROPERTY = DrillType<*>::_dirty.name
+        val PARENT_PROPERTY = DrillType<*>::_parent.name
 
         private val mutableInterfaceTypeName = DrillType::class.asClassName()
         private val mutableInterfaceTypeNameStar = DrillType::class.asClassName()
@@ -30,8 +28,10 @@ data class MutableClassModel(val typeElement: TypeElement) {
     val fileBuilder: FileSpec.Builder
 
     private val spec: TypeSpec = typeElement.toTypeSpec()
+    private val properties: List<MutablePropertyModel> = spec.propertySpecs.map { MutablePropertyModel(this, it) }
+
     val originalClassName: ClassName = typeElement.asClassName()
-    private var fields: List<MutableFieldModel> = emptyList()
+    private var adapters: List<PropertyAdapter> = emptyList()
 
     init {
         mutableClassType =
@@ -39,11 +39,13 @@ data class MutableClassModel(val typeElement: TypeElement) {
                 originalClassName.packageName,
                 "${originalClassName.simpleNames.joinToString("_")}$SUFFIX"
             )
-        ProcessorState.mutableClasses[originalClassName.toString()] = this
+
         fileBuilder = FileSpec.builder(
             mutableClassType.packageName,
             mutableClassType.simpleName
         )
+
+        ProcessorState.registerMutableClass(this)
     }
 
     fun generate() {
@@ -53,22 +55,22 @@ data class MutableClassModel(val typeElement: TypeElement) {
             generateMutableClass()
             fileBuilder.addComment(debug.joinToString(separator = "\n")).build()
         } catch (e: Throwable) {
-            val out = ByteArrayOutputStream()
-            e.printStackTrace(PrintStream(out))
-            fileBuilder.addComment(out.toString())
-            //logError(out.toString(), typeElement)
+            fileBuilder.addComment(e.stackTraceString())
+            throw e
         } finally {
             fileBuilder.build().writeToFile(typeElement)
         }
     }
 
     private fun generateMutableClass() {
-        fields = spec.propertySpecs.map { prop ->
-            MutableFieldModel.create(this, prop)
+        adapters = properties.map { prop ->
+            PropertyAdapter.createAdapter(prop)
         }
 
         val classBuilder = TypeSpec.classBuilder(mutableClassType)
             .addSuperinterface(mutableInterfaceTypeName.parameterizedBy(originalClassName))
+            .addKdoc("[%T]", originalClassName)
+            .addModifiers(KModifier.DATA)
             .primaryConstructor(
                 FunSpec.constructorBuilder()
                     .addParameter(SOURCE_PROPERTY, originalClassName)
@@ -96,7 +98,7 @@ data class MutableClassModel(val typeElement: TypeElement) {
             )
 
         generateGenericFunctions(classBuilder)
-        fields.map { it.generate(classBuilder) }
+        adapters.map { it.generate(classBuilder) }
 
         fileBuilder.addType(classBuilder.build())
         generateMutateExtension(fileBuilder)
@@ -104,10 +106,10 @@ data class MutableClassModel(val typeElement: TypeElement) {
 
     private fun generateGenericFunctions(classBuilder: TypeSpec.Builder) {
         val callCodeBlock = CodeBlock.builder()
-        fields.forEach {
+        adapters.forEach {
             callCodeBlock.add(it.freezeExpression)
         }
-        val callArgs = fields.joinToString(separator = ",\n") {
+        val callArgs = adapters.joinToString(separator = ",\n") {
             "${it.sourceProp.name} = ${it.freezeExpression}"
         }
         val freezeFun = FunSpec.builder("freeze")
@@ -136,14 +138,16 @@ data class MutableClassModel(val typeElement: TypeElement) {
             .addStatement("return %T(this, parent)", mutableClassType)
             .build()
 
+        val x = ""
+        x.let { }
+
         val mutateExtension = FunSpec.builder("mutate")
             .addModifiers(KModifier.INLINE)
             .addParameter(
                 ParameterSpec
                     .builder(
-                        "fn", LambdaTypeName.get(
-                            receiver = null,
-                            parameters = *arrayOf(mutableClassType),
+                        "block", LambdaTypeName.get(
+                            receiver = mutableClassType,
                             returnType = Unit::class.asClassName()
                         )
                     )
@@ -153,7 +157,7 @@ data class MutableClassModel(val typeElement: TypeElement) {
             .returns(originalClassName)
             .receiver(originalClassName)
             .addStatement("val mutable = this.${toMutableExtension.name}()")
-            .addStatement("fn(mutable)")
+            .addStatement("mutable.block()")
             .addStatement("return mutable.freeze()")
             .build()
 
