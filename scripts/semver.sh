@@ -64,21 +64,21 @@ Commands:
 See also:
   https://semver.org -- Semantic Versioning 2.0.0"
 
-function error {
+function error() {
   echo -e "$1" >&2
   exit 1
 }
 
-function usage-help {
+function usage-help() {
   error "$USAGE"
 }
 
-function usage-version {
+function usage-version() {
   echo -e "${PROG}: $PROG_VERSION"
   exit 0
 }
 
-function validate-version {
+function validate-version() {
   local version=$1
   if [[ "$version" =~ $SEMVER_REGEX ]]; then
     # if a second argument is passed, store the result in var named by $2
@@ -97,24 +97,36 @@ function validate-version {
   fi
 }
 
-function is-nat {
-    [[ "$1" =~ ^($NAT)$ ]]
+function is-nat() {
+  [[ "$1" =~ ^($NAT)$ ]]
 }
 
-function is-null {
-    [ -z "$1" ]
+function is-null() {
+  [ -z "$1" ]
 }
 
-function order-nat {
-    [ "$1" -lt "$2" ] && { echo -1 ; return ; }
-    [ "$1" -gt "$2" ] && { echo 1 ; return ; }
-    echo 0
+function order-nat() {
+  [ "$1" -lt "$2" ] && {
+    echo -1
+    return
+  }
+  [ "$1" -gt "$2" ] && {
+    echo 1
+    return
+  }
+  echo 0
 }
 
-function order-string {
-    [[ $1 < $2 ]] && { echo -1 ; return ; }
-    [[ $1 > $2 ]] && { echo 1 ; return ; }
-    echo 0
+function order-string() {
+  [[ $1 < $2 ]] && {
+    echo -1
+    return
+  }
+  [[ $1 > $2 ]] && {
+    echo 1
+    return
+  }
+  echo 0
 }
 
 # given two (named) arrays containing NAT and/or ALPHANUM fields, compare them
@@ -122,82 +134,126 @@ function order-string {
 # is less-than, equal, or greater-than the right array ($2).  The longer array
 # is considered greater-than the shorter if the shorter is a prefix of the longer.
 #
-function compare-fields {
-    local l="$1[@]"
-    local r="$2[@]"
-    local leftfield=( "${!l}" )
-    local rightfield=( "${!r}" )
-    local left
-    local right
+function compare-fields() {
+  local l="$1[@]"
+  local r="$2[@]"
+  local leftfield=("${!l}")
+  local rightfield=("${!r}")
+  local left
+  local right
 
-    local i=$(( -1 ))
-    local order=$(( 0 ))
+  local i=$((-1))
+  local order=$((0))
 
-    while true
-    do
-        [ $order -ne 0 ] && { echo $order ; return ; }
+  while true; do
+    [ $order -ne 0 ] && {
+      echo $order
+      return
+    }
 
-        : $(( i++ ))
-        left="${leftfield[$i]}"
-        right="${rightfield[$i]}"
+    : $((i++))
+    left="${leftfield[$i]}"
+    right="${rightfield[$i]}"
 
-        is-null "$left" && is-null "$right" && { echo 0  ; return ; }
-        is-null "$left"                     && { echo -1 ; return ; }
-                           is-null "$right" && { echo 1  ; return ; }
+    is-null "$left" && is-null "$right" && {
+      echo 0
+      return
+    }
+    is-null "$left" && {
+      echo -1
+      return
+    }
+    is-null "$right" && {
+      echo 1
+      return
+    }
 
-        is-nat "$left" &&  is-nat "$right" && { order=$(order-nat "$left" "$right") ; continue ; }
-        is-nat "$left"                     && { echo -1 ; return ; }
-                           is-nat "$right" && { echo 1  ; return ; }
-                                              { order=$(order-string "$left" "$right") ; continue ; }
-    done
+    is-nat "$left" && is-nat "$right" && {
+      order=$(order-nat "$left" "$right")
+      continue
+    }
+    is-nat "$left" && {
+      echo -1
+      return
+    }
+    is-nat "$right" && {
+      echo 1
+      return
+    }
+    {
+      order=$(order-string "$left" "$right")
+      continue
+    }
+  done
 }
 
 # shellcheck disable=SC2206     # checked by "validate"; ok to expand prerel id's into array
-function compare-version {
+function compare-version() {
   local order
   validate-version "$1" V
   validate-version "$2" V_
 
   # compare major, minor, patch
 
-  local left=( "${V[0]}" "${V[1]}" "${V[2]}" )
-  local right=( "${V_[0]}" "${V_[1]}" "${V_[2]}" )
+  local left=("${V[0]}" "${V[1]}" "${V[2]}")
+  local right=("${V_[0]}" "${V_[1]}" "${V_[2]}")
 
   order=$(compare-fields left right)
-  [ "$order" -ne 0 ] && { echo "$order" ; return ; }
+  [ "$order" -ne 0 ] && {
+    echo "$order"
+    return
+  }
 
   # compare pre-release ids when M.m.p are equal
 
   local prerel="${V[3]:1}"
   local prerel_="${V_[3]:1}"
-  local left=( ${prerel//./ } )
-  local right=( ${prerel_//./ } )
+  local left=(${prerel//./ })
+  local right=(${prerel_//./ })
 
   # if left and right have no pre-release part, then left equals right
   # if only one of left/right has pre-release part, that one is less than simple M.m.p
 
-  [ -z "$prerel" ] && [ -z "$prerel_" ] && { echo 0  ; return ; }
-  [ -z "$prerel" ]                      && { echo 1  ; return ; }
-                      [ -z "$prerel_" ] && { echo -1 ; return ; }
+  [ -z "$prerel" ] && [ -z "$prerel_" ] && {
+    echo 0
+    return
+  }
+  [ -z "$prerel" ] && {
+    echo 1
+    return
+  }
+  [ -z "$prerel_" ] && {
+    echo -1
+    return
+  }
 
   # otherwise, compare the pre-release id's
 
   compare-fields left right
 }
 
-function command-bump {
-  local new; local version; local sub_version; local command;
+function command-bump() {
+  local new
+  local version
+  local sub_version
+  local command
 
   case $# in
-    2) case $1 in
-        major|minor|patch|release) command=$1; version=$2;;
-        *) usage-help;;
-       esac ;;
-    3) case $1 in
-        prerel|build) command=$1; sub_version=$2 version=$3 ;;
-        *) usage-help;;
-       esac ;;
-    *) usage-help;;
+  2) case $1 in
+    major | minor | patch | release)
+      command=$1
+      version=$2
+      ;;
+    *) usage-help ;;
+    esac ;;
+  3) case $1 in
+    prerel | build)
+      command=$1
+      sub_version=$2 version=$3
+      ;;
+    *) usage-help ;;
+    esac ;;
+  *) usage-help ;;
   esac
 
   validate-version "$version" parts
@@ -209,70 +265,91 @@ function command-bump {
   local build="${parts[4]}"
 
   case "$command" in
-    major) new="$((major + 1)).0.0";;
-    minor) new="${major}.$((minor + 1)).0";;
-    patch) new="${major}.${minor}.$((patch + 1))";;
-    release) new="${major}.${minor}.${patch}";;
-    prerel) new=$(validate-version "${major}.${minor}.${patch}-${sub_version}");;
-    build) new=$(validate-version "${major}.${minor}.${patch}${prere}+${sub_version}");;
-    *) usage-help ;;
+  major) new="$((major + 1)).0.0" ;;
+  minor) new="${major}.$((minor + 1)).0" ;;
+  patch) new="${major}.${minor}.$((patch + 1))" ;;
+  release) new="${major}.${minor}.${patch}" ;;
+  prerel) new=$(validate-version "${major}.${minor}.${patch}-${sub_version}") ;;
+  build) new=$(validate-version "${major}.${minor}.${patch}${prere}+${sub_version}") ;;
+  *) usage-help ;;
   esac
 
   echo "$new"
   exit 0
 }
 
-function command-compare {
-  local v; local v_;
+function command-compare() {
+  local v
+  local v_
 
   case $# in
-    2) v=$(validate-version "$1"); v_=$(validate-version "$2") ;;
-    *) usage-help ;;
+  2)
+    v=$(validate-version "$1")
+    v_=$(validate-version "$2")
+    ;;
+  *) usage-help ;;
   esac
 
-  set +u                        # need unset array element to evaluate to null
+  set +u # need unset array element to evaluate to null
   compare-version "$v" "$v_"
   exit 0
 }
 
-
 # shellcheck disable=SC2034
-function command-get {
-    local part version
+function command-get() {
+  local part version
 
-    if [[ "$#" -ne "2" ]] || [[ -z "$1" ]] || [[ -z "$2" ]]; then
-        usage-help
-        exit 0
-    fi
-
-    part="$1"
-    version="$2"
-
-    validate-version "$version" parts
-    local major="${parts[0]}"
-    local minor="${parts[1]}"
-    local patch="${parts[2]}"
-    local prerel="${parts[3]:1}"
-    local build="${parts[4]:1}"
-    local release="${major}.${minor}.${patch}"
-
-    case "$part" in
-        major|minor|patch|release|prerel|build) echo "${!part}" ;;
-        *) usage-help ;;
-    esac
-
+  if [[ "$#" -ne "2" ]] || [[ -z "$1" ]] || [[ -z "$2" ]]; then
+    usage-help
     exit 0
+  fi
+
+  part="$1"
+  version="$2"
+
+  validate-version "$version" parts
+  local major="${parts[0]}"
+  local minor="${parts[1]}"
+  local patch="${parts[2]}"
+  local prerel="${parts[3]:1}"
+  local build="${parts[4]:1}"
+  local release="${major}.${minor}.${patch}"
+
+  case "$part" in
+  major | minor | patch | release | prerel | build) echo "${!part}" ;;
+  *) usage-help ;;
+  esac
+
+  exit 0
 }
 
 case $# in
-  0) echo "Unknown command: $*"; usage-help;;
+0)
+  echo "Unknown command: $*"
+  usage-help
+  ;;
 esac
 
 case $1 in
-  --help|-h) echo -e "$USAGE"; exit 0;;
-  --version|-v) usage-version ;;
-  bump) shift; command-bump "$@";;
-  get) shift; command-get "$@";;
-  compare) shift; command-compare "$@";;
-  *) echo "Unknown arguments: $*"; usage-help;;
+--help | -h)
+  echo -e "$USAGE"
+  exit 0
+  ;;
+--version | -v) usage-version ;;
+bump)
+  shift
+  command-bump "$@"
+  ;;
+get)
+  shift
+  command-get "$@"
+  ;;
+compare)
+  shift
+  command-compare "$@"
+  ;;
+*)
+  echo "Unknown arguments: $*"
+  usage-help
+  ;;
 esac
