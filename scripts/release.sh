@@ -38,6 +38,6 @@ require_clean_work_tree "Generate release"
 ./gradlew clean build test || exit 1
 
 # bump version and push
-./bump-tag.sh minor
+./scripts/bump-tag.sh minor
 git push --tags
 git push
