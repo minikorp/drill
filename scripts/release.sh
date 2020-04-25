@@ -26,7 +26,6 @@ require_clean_work_tree() {
 }
 
 cd "$(dirname "$0")" || exit
-cd .. # Go root project directory
 
 # Ensure tags are up to date
 require_clean_work_tree "Generate release"
@@ -34,10 +33,12 @@ git pull
 git pull --tags
 require_clean_work_tree "Generate release"
 
-# Ensure test pass
+# Clean build succeeds
+cd .. # move to project root
 ./gradlew clean build test || exit 1
+cd "$(dirname "$0")" || exit
 
 # bump version and push
-./scripts/bump-tag.sh minor
+./bump-tag.sh minor
 git push --tags
 git push
