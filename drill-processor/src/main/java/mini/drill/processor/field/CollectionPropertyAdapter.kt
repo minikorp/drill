@@ -5,10 +5,7 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import mini.drill.DrillList
 import mini.drill.DrillMap
-import mini.drill.processor.MutablePropertyModel
-import mini.drill.processor.NAME_SHADOWING
-import mini.drill.processor.ProcessorState
-import mini.drill.processor.UNCHECKED
+import mini.drill.processor.*
 
 @KotlinPoetMetadataPreview
 class CollectionPropertyAdapter(sourceProp: MutablePropertyModel) : PropertyAdapter(sourceProp) {
@@ -56,31 +53,31 @@ class CollectionPropertyAdapter(sourceProp: MutablePropertyModel) : PropertyAdap
         )
 
     override fun generate(builder: TypeSpec.Builder) {
-        val mutateBlock = recursiveType.mutate
+
         val accessorField = PropertySpec.builder(sourceProp.name, recursiveType.type)
             .addKdoc(refPropertyKdoc)
             .mutable(false)
             .getter(
                 FunSpec.getterBuilder()
-                    .addAnnotation(UNCHECKED)
+                    .addAnnotation(suppressAnnotation(UNCHECKED, NAME_SHADOWING))
                     .beginControlFlow(
                         "if (${backingPropertyName} === %T)", unsetClassName
                     )
                     .addStatement("$backingPropertyName = ${refPropertyAccessor}.let { ")
                     .addStatement("val container = this")
-                    .addCode(mutateBlock).addCode(" }")
+                    .addCode(recursiveType.mutate).addCode(" }")
                     .endControlFlow()
                     .addStatement("return $backingPropertyName as %T", recursiveType.type)
                     .build()
             ).build()
 
         val setterFunction = FunSpec.builder("set" + sourceProp.name.capitalize())
-            .addAnnotation(NAME_SHADOWING)
+            .addAnnotation(suppressAnnotation(NAME_SHADOWING))
             .addParameter(sourceProp.name, sourceProp.type)
             .addStatement("val param = ${sourceProp.name}")
             .addCode("$backingPropertyName = param.let { ")
             .addStatement("val container = this")
-            .addCode(mutateBlock)
+            .addCode(recursiveType.mutate)
             .addCode(" }\n")
             .addStatement("markDirty()")
             .build()

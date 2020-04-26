@@ -1,9 +1,5 @@
 package mini.drill
 
-import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
-
 @Suppress("UNCHECKED_CAST")
 class DrillMap<K, Immutable, Mutable>(
     override var _ref: Map<K, Immutable>,
@@ -44,18 +40,25 @@ class DrillMap<K, Immutable, Mutable>(
         }
 
         override fun equals(other: Any?): Boolean {
-            return Objects.equals(backing, other)
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+            other as DrillMap<*, *, *>.Entry
+            if (_ref != other._ref) return false
+            if (backing != other.backing) return false
+            return true
         }
 
         override fun hashCode(): Int {
-            return backing.hashCode()
+            var result = _ref?.hashCode() ?: 0
+            result = 31 * result + (backing?.hashCode() ?: 0)
+            return result
         }
     }
 
     override var _dirty: Boolean = false
 
-    private val items: HashMap<K, Entry> by lazy {
-        _ref.mapValuesTo(HashMap()) { Entry(it.key, it.value) }
+    private val items: HashMap<K, Entry> by lazy(LazyThreadSafetyMode.NONE) {
+        _ref.mapValuesTo(LinkedHashMap()) { Entry(it.key, it.value) }
     }
 
     override fun freeze(): Map<K, Immutable> {
@@ -74,14 +77,15 @@ class DrillMap<K, Immutable, Mutable>(
     override val entries: MutableSet<MutableMap.MutableEntry<K, Mutable>> get() = items.values.toMutableSet()
     override val keys: MutableSet<K> get() = items.keys
     override val values: MutableCollection<Mutable> get() = items.values.mapTo(ArrayList(items.size)) { it.value }
-    override fun clear() = items.clear()
+    override fun clear() = items.clear().apply { markDirty() }
 
     override fun put(key: K, value: Mutable): Mutable? {
         items[key] = Entry(key, freeze(value))
+        markDirty()
         return value
     }
 
-    operator fun set(key: K, value: Immutable): Unit {
+    operator fun set(key: K, value: Immutable) {
         put(key, value)
     }
 
@@ -104,6 +108,10 @@ class DrillMap<K, Immutable, Mutable>(
         val e = items.remove(key)
         markDirty()
         return e?.value
+    }
+
+    override fun toString(): String {
+        return entries.toString()
     }
 }
 

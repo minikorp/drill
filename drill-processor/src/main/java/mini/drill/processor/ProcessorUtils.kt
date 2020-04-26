@@ -118,8 +118,9 @@ fun suppressAnnotation(vararg warnings: String): AnnotationSpec {
     }.build()
 }
 
-val UNCHECKED = suppressAnnotation("UNCHECKED_CAST")
-val NAME_SHADOWING = suppressAnnotation("NAME_SHADOWING")
+val UNCHECKED = "UNCHECKED_CAST"
+val NAME_SHADOWING = "NAME_SHADOWING"
+
 val KOTLIN_LIST = ClassName("kotlin.collections", "List")
 val KOTLIN_MUTABLE_LIST = ClassName("kotlin.collections", "MutableList")
 val KOTLIN_MAP = ClassName("kotlin.collections", "Map")

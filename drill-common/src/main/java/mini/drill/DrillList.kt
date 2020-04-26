@@ -31,12 +31,27 @@ class DrillList<Immutable, Mutable>(
             if (_dirty) return freeze(value)
             return _ref
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+            other as DrillList<*, *>.Entry
+            if (_ref != other._ref) return false
+            if (backing != other.backing) return false
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = _ref?.hashCode() ?: 0
+            result = 31 * result + (backing?.hashCode() ?: 0)
+            return result
+        }
     }
 
     override var _dirty = false
 
-    private val items: ArrayList<Entry> by lazy {
-        _ref.mapTo(ArrayList()) { Entry(it) }
+    private val items: MutableList<Entry> by lazy(LazyThreadSafetyMode.NONE) {
+        _ref.map { Entry(it) }.toMutableList()
     }
 
     override fun freeze(): List<Immutable> {
@@ -69,16 +84,18 @@ class DrillList<Immutable, Mutable>(
 
     operator fun set(index: Int, element: Immutable): Immutable {
         items[index].set(element)
+        markDirty()
         return element
     }
 
     fun removeAt(index: Int): Mutable {
         val out = get(index)
         items.removeAt(index)
+        markDirty()
         return out
     }
 
-    override fun clear() = items.clear()
+    override fun clear() = items.clear().apply { markDirty() }
 
     override fun remove(element: Mutable): Boolean {
         return items.removeIf { it.value == element }.apply { markDirty() }

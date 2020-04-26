@@ -115,7 +115,7 @@ data class MutableClassModel(val typeElement: TypeElement) {
         val freezeFun = FunSpec.builder("freeze")
             .returns(originalClassName)
             .addModifiers(KModifier.OVERRIDE)
-            .addAnnotation(UNCHECKED)
+            .addAnnotation(suppressAnnotation(UNCHECKED))
             .beginControlFlow("if (${DIRTY_PROPERTY})")
             .addStatement("return %T($callArgs)", originalClassName)
             .endControlFlow()
