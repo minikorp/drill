@@ -55,7 +55,7 @@ TODO("Document this")
 
 TODO("Document this")
 
-## Performance and reference equality
+## Performance and Reference Equality
 
 TODO("Document this")
 
