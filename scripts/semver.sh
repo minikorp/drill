@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Orignal author fsaintjacques: https://github.com/fsaintjacques/semver-tool
+
 set -o errexit -o nounset -o pipefail
 
 NAT='0|[1-9][0-9]*'
