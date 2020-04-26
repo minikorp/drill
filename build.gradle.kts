@@ -1,17 +1,21 @@
 plugins {
     java
     kotlin("jvm") version "1.3.72"
+    `maven-publish`
 }
 
-group = "mini"
-version = "0.1"
-
-repositories {
-    mavenCentral()
-    jcenter()
+fun runCommand(command: String): String {
+    val stream = Runtime.getRuntime().exec("scripts/latest-version.sh")
+        .apply { waitFor() }.inputStream
+    return String(stream.readAllBytes()).trim()
 }
 
 allprojects {
+
+    apply(plugin = "maven-publish")
+    group = "mini.drill"
+    version = runCommand("scripts/latest-version.sh")
+
     repositories {
         mavenCentral()
         jcenter()
@@ -22,6 +26,11 @@ allprojects {
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
     testCompile("junit", "junit", "4.12")
+
+    // Make the root project archives configuration depend on every subproject
+    subprojects.forEach {
+        archives(it)
+    }
 }
 
 configure<JavaPluginConvention> {

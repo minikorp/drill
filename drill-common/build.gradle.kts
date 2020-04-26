@@ -1,9 +1,7 @@
 plugins {
     kotlin("jvm")
+    `maven-publish`
 }
-
-group = "com.mini"
-version = "0.1"
 
 repositories {
     mavenCentral()
@@ -19,5 +17,19 @@ tasks {
     }
     compileTestKotlin {
         kotlinOptions.jvmTarget = "1.8"
+    }
+}
+
+val sourcesJar by tasks.creating(Jar::class) {
+    archiveClassifier.set("sources")
+    from(project.sourceSets["main"].allSource)
+}
+
+publishing {
+    publications {
+        this.register("mavenJava", MavenPublication::class) {
+            from(components["java"])
+            artifact(sourcesJar)
+        }
     }
 }
