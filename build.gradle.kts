@@ -5,9 +5,9 @@ plugins {
 }
 
 fun runCommand(command: String): String {
-    val stream = Runtime.getRuntime().exec("scripts/latest-version.sh")
+    val stream = Runtime.getRuntime().exec(command)
         .apply { waitFor() }.inputStream
-    return String(stream.readAllBytes()).trim()
+    return stream.reader().readText().trim()
 }
 
 allprojects {
