@@ -11,7 +11,7 @@ data class Person(val name: String)
 ```
 
 When building, Drill will generate a mutable version of Person called `Person_Mutable` and an
-extension function `mutate()` that works similar to default `apply` from standard libray.
+extension function `Person.mutate()` that works similar to default `apply` from standard libray.
 
 You can now "mutate" your data class similar to kotlin `copy(...)` method.
 
