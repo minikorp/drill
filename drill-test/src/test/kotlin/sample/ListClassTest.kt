@@ -2,11 +2,18 @@ package sample
 
 import org.junit.jupiter.api.Test
 import strikt.api.expectThat
-import strikt.assertions.isEmpty
-import strikt.assertions.isEqualTo
-import strikt.assertions.isSameInstanceAs
+import strikt.assertions.*
 
 internal class ListClassTest {
+
+    @Test
+    fun `empty mutation keeps reference`() {
+        val source = ListClass(listOf(ListItem("not mutated")))
+        val mutated = source.mutate {
+            source.list.forEach { it.text } //Just read
+        }
+        expectThat(mutated.list).isSameInstanceAs(source.list)
+    }
 
     @Test
     fun `mutating at index changes the value`() {
@@ -20,11 +27,27 @@ internal class ListClassTest {
     @Test
     fun `elements are added`() {
         val source = ListClass()
-        val element = ListItem("second")
+        val addedItem = ListItem("element")
         val mutated = source.mutate {
-            list.add(element)
+            list.add(addedItem)
         }
-        expectThat(mutated.list[0]).isSameInstanceAs(element)
+        expectThat(mutated.list) {
+            hasSize(1)
+            elementAt(0).isSameInstanceAs(addedItem)
+        }
+    }
+
+    @Test
+    fun `elements at index are added`() {
+        val source = ListClass(list = listOf(ListItem()))
+        val addedItem = ListItem("first")
+        val mutated = source.mutate {
+            list.addAt(0, addedItem)
+        }
+        expectThat(mutated.list) {
+            hasSize(2)
+            elementAt(0).isSameInstanceAs(addedItem)
+        }
     }
 
     @Test
@@ -41,6 +64,30 @@ internal class ListClassTest {
         val source = ListClass(listOf(ListItem("not mutated")))
         val mutated = source.mutate {
             list.clear()
+        }
+        expectThat(mutated.list).isEmpty()
+    }
+
+    @Test
+    fun `elements are retained`() {
+        val source = ListClass(listOf(ListItem("1"), ListItem("2")))
+        val mutated = source.mutate {
+            this.list.retainAll { it.text == "1" }
+        }
+        expectThat(mutated.list[0]).isSameInstanceAs(source.list[0])
+        expectThat(mutated.list).hasSize(1)
+    }
+
+    @Test
+    fun `mutable iterator deletes items`() {
+        val source = ListClass(listOf(ListItem("1"), ListItem("2")))
+        val mutated = source.mutate {
+            with(list.iterator()) {
+                while (hasNext()) {
+                    next()
+                    remove()
+                }
+            }
         }
         expectThat(mutated.list).isEmpty()
     }

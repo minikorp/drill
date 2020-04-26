@@ -74,10 +74,12 @@ class DrillMap<K, Immutable, Mutable>(
     override fun get(key: K): Mutable? = items[key]?.value
     override fun isEmpty(): Boolean = items.isEmpty()
     override val size: Int get() = items.size
+
+    //TODO: Modifying this set won't mark the map as dirty, need to implement DrillSet
     override val entries: MutableSet<MutableMap.MutableEntry<K, Mutable>> get() = items.values.toMutableSet()
     override val keys: MutableSet<K> get() = items.keys
     override val values: MutableCollection<Mutable> get() = items.values.mapTo(ArrayList(items.size)) { it.value }
-    override fun clear() = items.clear().apply { markDirty() }
+    override fun clear() = items.clear().also { markDirty() }
 
     override fun put(key: K, value: Mutable): Mutable? {
         items[key] = Entry(key, freeze(value))
@@ -95,18 +97,15 @@ class DrillMap<K, Immutable, Mutable>(
     }
 
     fun put(from: Map<out K, Immutable>) {
-        from.mapValuesTo(items) { Entry(it.key, it.value) }
-        markDirty()
+        from.mapValuesTo(items) { Entry(it.key, it.value) }.also { markDirty() }
     }
 
     override fun putAll(from: Map<out K, Mutable>) {
-        from.mapValuesTo(items) { Entry(it.key, freeze(it.value)) }
-        markDirty()
+        from.mapValuesTo(items) { Entry(it.key, freeze(it.value)) }.also { markDirty() }
     }
 
     override fun remove(key: K): Mutable? {
-        val e = items.remove(key)
-        markDirty()
+        val e = items.remove(key).also { markDirty() }
         return e?.value
     }
 

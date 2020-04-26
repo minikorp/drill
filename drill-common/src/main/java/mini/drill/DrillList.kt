@@ -55,11 +55,7 @@ class DrillList<Immutable, Mutable>(
     }
 
     override fun freeze(): List<Immutable> {
-        return if (_dirty) {
-            items.map { it.freeze() }
-        } else {
-            _ref
-        }
+        return if (_dirty) items.map { it.freeze() } else _ref
     }
 
     operator fun get(index: Int): Mutable {
@@ -71,38 +67,22 @@ class DrillList<Immutable, Mutable>(
     override fun isEmpty(): Boolean = items.isEmpty()
 
     override fun iterator(): MutableIterator<Mutable> = object : MutableIterator<Mutable> {
-        var currentIndex = 0
-        override fun hasNext(): Boolean = currentIndex != items.size
+        val iterator = items.iterator()
+        override fun hasNext(): Boolean = iterator.hasNext()
         override fun next(): Mutable {
-            return get(currentIndex++)
+            return iterator.next().value
         }
 
         override fun remove() {
-            removeAt(currentIndex)
+            iterator.remove()
+            markDirty()
         }
     }
 
-    operator fun set(index: Int, element: Immutable): Immutable {
-        items[index].set(element)
-        markDirty()
-        return element
-    }
-
-    fun removeAt(index: Int): Mutable {
-        val out = get(index)
-        items.removeAt(index)
-        markDirty()
-        return out
-    }
-
-    override fun clear() = items.clear().apply { markDirty() }
+    override fun clear() = items.clear().also { markDirty() }
 
     override fun remove(element: Mutable): Boolean {
-        return items.removeIf { it.value == element }.apply { markDirty() }
-    }
-
-    fun remove(element: Immutable) {
-        items.removeIf { it._ref == element }.apply { markDirty() }
+        return items.removeIf { it.value == element }.also { markDirty() }
     }
 
     override fun removeAll(elements: Collection<Mutable>): Boolean {
@@ -111,27 +91,15 @@ class DrillList<Immutable, Mutable>(
     }
 
     override fun retainAll(elements: Collection<Mutable>): Boolean {
-        return items.retainAll { elements.contains(it.value) }.apply { markDirty() }
-    }
-
-    fun retainAll(elements: Collection<Immutable>) {
-        items.retainAll { elements.contains(it._ref) }.apply { markDirty() }
+        return items.retainAll { elements.contains(it.value) }.also { markDirty() }
     }
 
     override fun add(element: Mutable): Boolean {
-        return items.add(Entry(freeze(element)).apply { markDirty() })
-    }
-
-    fun add(element: Immutable) {
-        items.add(Entry(element)).apply { markDirty() }
+        return items.add(Entry(freeze(element)).also { markDirty() })
     }
 
     override fun addAll(elements: Collection<Mutable>): Boolean {
-        var added = false
-        elements.forEach {
-            added = add(it) || added
-        }
-        return added
+        return elements.map { add(it) }.any()
     }
 
     override fun contains(element: Mutable): Boolean {
@@ -140,6 +108,33 @@ class DrillList<Immutable, Mutable>(
 
     override fun containsAll(elements: Collection<Mutable>): Boolean {
         return elements.all { contains(it) }
+    }
+
+    // Methods from MutableList
+
+    operator fun set(index: Int, element: Immutable): Immutable {
+        items[index].set(element).also { markDirty() }
+        return element
+    }
+
+    fun retainAll(elements: Collection<Immutable>) {
+        items.retainAll { elements.contains(it._ref) }.also { markDirty() }
+    }
+
+    fun remove(element: Immutable) {
+        items.removeIf { it._ref == element }.also { markDirty() }
+    }
+
+    fun removeAt(index: Int): Mutable {
+        val out = get(index)
+        items.removeAt(index).also { markDirty() }
+        return out
+    }
+
+    fun add(element: Immutable) = addAt(items.size, element)
+
+    fun addAt(index: Int, element: Immutable) {
+        items.add(index, Entry(element)).also { markDirty() }
     }
 
     override fun toString(): String {
