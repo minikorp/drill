@@ -74,4 +74,3 @@ You can grab the latest version from the jitpack tag below:
 implementation("com.github.minikorp.drill:drill-common:$DRILL_VERSION")
 kapt("com.github.minikorp.drill:drill-processor:$DRILL_VERSION")
 ```
-
