@@ -49,7 +49,36 @@ val mutated: Person = person.mutate { name.surame = "Drill" }
 
 ## Lists And Maps
 
-TODO("Document this")
+As well as nesting data classes lists and maps are also pretty common when describing models.
+
+```
+@Drill
+data class ListItem(val text: String = "item")
+
+@Drill
+data class ListClass(
+    val list: List<ListItem>
+)
+```
+
+In order to support mutable like syntax for this types Drill provides two new Types `DrillList` and `DrillMap` that implement like kotlin `MutableList` and a `MutableMap` respectivly but perform some bookeeping in order to maintain data classes copy method semantics.
+
+```kotlin
+val source = ListClass(listOf(ListItem()))
+println(source) //ListClass(list=[ListItem(text=item)])
+val mutated = source.mutate {
+    //Modify item 0 and add some new ones
+    list[0].text = "Hello I am first index"
+    list.add(ListItem("Second item"))
+    list.add(ListItem("Third item"))
+}.mutate {
+    //Remove second item in second mutation
+    list.removeAt(1)
+}
+println(mutated) //ListClass(list=[ListItem(text=Hello I am first index), ListItem(text=Third item)])
+```
+
+This way, we can easily modify items inside lists as if they were mutable lists of mutable items. 
 
 ## Ignoring field
 
