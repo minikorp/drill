@@ -35,7 +35,11 @@ If we were to modify the surname using copy methods we would write:
 
 ```kotlin
 val person: Person = Person(name = Name(name="Hello", surname="World")
-val mutated: Person = person.copy(name=person.name.copy(surname="Ugly Copy"))
+val mutated: Person = person.copy(
+    name=person.name.copy(
+        surname="Ugly Copy"
+    )
+)
 ```
 
 Which becomes harder to read and to maintain as models get more complex and nesting level increasees.  
@@ -44,7 +48,9 @@ This is the main use case for drill, using the `mutate` extension we can now wri
 
 ```kotlin
 val person: Person = Person(name = Name(name="Hello", surname="World")
-val mutated: Person = person.mutate { name.surame = "Drill" }
+val mutated: Person = person.mutate { 
+    name.surame = "Drill" 
+}
 ```
 
 ## Lists And Maps
