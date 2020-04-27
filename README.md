@@ -53,7 +53,7 @@ val mutated: Person = person.mutate {
 }
 ```
 
-## Lists And Maps
+## Lists And Maps Usage
 
 As well as nesting data classes lists and maps are also pretty common when describing models.
 
@@ -86,19 +86,33 @@ println(mutated) //ListClass(list=[ListItem(text=Hello I am first index), ListIt
 
 This way, we can easily modify items inside lists as if they were mutable lists of mutable items. 
 
-TODO("Example with maps")
+Maps behave in a similar way:
 
-## Ignoring field
-
-TODO("Document this")
+```
+val source = MapClass()
+val newItem = MapItem("added")
+val mutated = source.mutate {
+    this.map["a"] = newItem
+}
+```
+Check more example usages in the **[test module](https://github.com/minikorp/drill/tree/master/drill-test/src/test/kotlin/sample)**
 
 ## Performance and Reference Equality
 
-TODO("Document this")
+Only significant performance impact is one additional object allocation everytime a mutable object is read for the first time in a lazy fasion. This includes nested fields and items in both lists and maps. Mutable object creation is still lazy.  
+```kotlin
+object.mutate {
+    field = "reference" // no object allocation
+    nested.another = "nested" // mutable object created for `nested`
+    list[0].text = "list access" // mutable list and mutable item created
+}
 
-## Limitations
+```
 
-TODO("Document this")
+For that reason, you should avoid traversing the mutable object inside the `mutate` block if running in a critical section like a draw loop to avoid triggering a GC later down the line.
+
+Semantics expected from mutable clases mimic expected behaviour from copy, including reference equality. That is, a non changed field will keep it's reference, so `===` operator will hold true unless field has mutated. For lists and maps, changing any item in the underlying items will trigger list and map recreation.
+
 
 ## Importing
 
