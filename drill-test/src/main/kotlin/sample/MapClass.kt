@@ -2,11 +2,6 @@ package sample
 
 import mini.drill.Drill
 
-//@Drill
-//data class MapClassPrimitive(
-//    val Map: Map<Int>
-//)
-
 @Drill
 data class MapClass(
     val list: List<SimpleClass>,

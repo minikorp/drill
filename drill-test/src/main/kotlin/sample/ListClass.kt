@@ -11,6 +11,11 @@ data class ListClass(
 )
 
 @Drill
+data class PrimitiveList(
+    val list: List<Int> = emptyList()
+)
+
+@Drill
 data class ListNullableClass(
     val list: List<ListItem>?
 )

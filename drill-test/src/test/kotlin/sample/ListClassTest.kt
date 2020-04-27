@@ -16,6 +16,18 @@ internal class ListClassTest {
     }
 
     @Test
+    fun `primitive items are immutable`() {
+        val source = PrimitiveList(listOf(0, 1, 2))
+        val mutated = source.mutate {
+            list.add(30)
+            list.addAt(0, 999)
+            expectThat(list[0]).isEqualTo(999)
+            expectThat(list.last()).isEqualTo(30)
+        }
+        expectThat(mutated.list).hasSize(5)
+    }
+
+    @Test
     fun `mutating at index changes the value`() {
         val source = ListClass(listOf(ListItem("not mutated")))
         val mutated = source.mutate {
@@ -29,7 +41,7 @@ internal class ListClassTest {
         val source = ListClass()
         val addedItem = ListItem("element")
         val mutated = source.mutate {
-            list.add(addedItem)
+            list.addElement(addedItem)
         }
         expectThat(mutated.list) {
             hasSize(1)

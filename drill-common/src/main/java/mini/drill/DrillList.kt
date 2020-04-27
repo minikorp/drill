@@ -131,10 +131,12 @@ class DrillList<Immutable, Mutable>(
         return out
     }
 
-    fun add(element: Immutable) = addAt(items.size, element)
+    /** Similar to [add] can't share name due to type erasure generating same signature */
+    fun addElement(element: Immutable): Boolean = addAt(items.size, element)
 
-    fun addAt(index: Int, element: Immutable) {
+    fun addAt(index: Int, element: Immutable): Boolean {
         items.add(index, Entry(element)).also { markDirty() }
+        return true
     }
 
     override fun toString(): String {
