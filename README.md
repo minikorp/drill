@@ -1,4 +1,4 @@
-# Drill
+# Drill 👷
 Property drilling for Kotlin
 
 ## Getting started
