@@ -86,6 +86,8 @@ println(mutated) //ListClass(list=[ListItem(text=Hello I am first index), ListIt
 
 This way, we can easily modify items inside lists as if they were mutable lists of mutable items. 
 
+TODO("Example with maps")
+
 ## Ignoring field
 
 TODO("Document this")
