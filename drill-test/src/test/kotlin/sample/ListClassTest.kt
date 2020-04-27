@@ -10,7 +10,7 @@ internal class ListClassTest {
     fun `empty mutation keeps reference`() {
         val source = ListClass(listOf(ListItem("not mutated")))
         val mutated = source.mutate {
-            source.list.forEach { it.text } //Just read
+            this.list.forEach { it.text } //Just read
         }
         expectThat(mutated.list).isSameInstanceAs(source.list)
     }

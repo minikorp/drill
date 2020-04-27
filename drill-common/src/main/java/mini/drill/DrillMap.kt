@@ -1,5 +1,7 @@
 package mini.drill
 
+import java.util.function.Predicate
+
 @Suppress("UNCHECKED_CAST")
 class DrillMap<K, Immutable, Mutable>(
     override var _ref: Map<K, Immutable>,
@@ -74,9 +76,6 @@ class DrillMap<K, Immutable, Mutable>(
     override fun get(key: K): Mutable? = items[key]?.value
     override fun isEmpty(): Boolean = items.isEmpty()
     override val size: Int get() = items.size
-
-    //TODO: Modifying this set won't mark the map as dirty, need to implement DrillSet
-    override val entries: MutableSet<MutableMap.MutableEntry<K, Mutable>> get() = items.values.toMutableSet()
     override val keys: MutableSet<K> get() = items.keys
     override val values: MutableCollection<Mutable> get() = items.values.mapTo(ArrayList(items.size)) { it.value }
     override fun clear() = items.clear().also { markDirty() }
@@ -92,8 +91,7 @@ class DrillMap<K, Immutable, Mutable>(
     }
 
     fun put(key: K, value: Immutable) {
-        items[key] = Entry(key, value)
-        markDirty()
+        items[key] = Entry(key, value).also { markDirty() }
     }
 
     fun put(from: Map<out K, Immutable>) {
@@ -112,7 +110,53 @@ class DrillMap<K, Immutable, Mutable>(
     override fun toString(): String {
         return entries.toString()
     }
+
+    override val entries: MutableSet<MutableMap.MutableEntry<K, Mutable>>
+        get() {
+            return DelegateEntries(items.entries as MutableSet<MutableMap.MutableEntry<K, Mutable>>)
+        }
+
+    private inner class DelegateEntries(
+        private val actualSet: MutableSet<MutableMap.MutableEntry<K, Mutable>>
+    ) : MutableSet<MutableMap.MutableEntry<K, Mutable>> by actualSet {
+        override fun add(element: MutableMap.MutableEntry<K, Mutable>): Boolean =
+            actualSet.add(element).also { if (it) markDirty() }
+
+        override fun addAll(elements: Collection<MutableMap.MutableEntry<K, Mutable>>): Boolean =
+            actualSet.addAll(elements).also { if (it) markDirty() }
+
+        override fun remove(element: MutableMap.MutableEntry<K, Mutable>): Boolean =
+            actualSet.remove(element).also { if (it) markDirty() }
+
+        override fun removeAll(elements: Collection<MutableMap.MutableEntry<K, Mutable>>): Boolean =
+            actualSet.removeAll(elements).also { if (it) markDirty() }
+
+        override fun retainAll(elements: Collection<MutableMap.MutableEntry<K, Mutable>>): Boolean =
+            actualSet.retainAll(elements).also { if (it) markDirty() }
+
+        override fun removeIf(filter: Predicate<in MutableMap.MutableEntry<K, Mutable>>): Boolean =
+            actualSet.removeIf(filter).also { if (it) markDirty() }
+
+        override fun clear() {
+            if (actualSet.isNotEmpty()) {
+                actualSet.clear().also { markDirty() }
+            }
+        }
+
+        override fun iterator(): MutableIterator<MutableMap.MutableEntry<K, Mutable>> {
+            return DelegateIterator(actualSet.iterator())
+        }
+    }
+
+    private inner class DelegateIterator(
+        val actualIterator: MutableIterator<MutableMap.MutableEntry<K, Mutable>>
+    ) : MutableIterator<MutableMap.MutableEntry<K, Mutable>> by actualIterator {
+        override fun remove() {
+            actualIterator.remove().also { markDirty() }
+        }
+    }
 }
+
 
 fun <K, Mutable, Immutable> Map<K, Immutable>.toMutable(
     parent: DrillType<*>? = null,
