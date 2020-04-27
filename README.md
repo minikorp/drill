@@ -12,7 +12,7 @@ data class Person(val name: String)
 ```
 
 When building, Drill will generate a mutable version of Person called `Person_Mutable` and an
-extension function `Person.mutate()` that works similar to default `apply` from standard libray.
+extension function `Person.mutate()` that works similar to default `apply` from standard library.
 
 You can now "mutate" your data class similar to kotlin `copy(...)` method from within the mutate 
 block as if your class was mutable.
@@ -44,14 +44,14 @@ val mutated: Person = person.copy(
 )
 ```
 
-Which becomes harder to read and to maintain as models get more complex and nesting level increasees.  
+Which becomes harder to read and to maintain as models get more complex and nesting level increases.  
 This is the main use case for drill, using the `mutate` extension we can now write:
 
 
 ```kotlin
 val person: Person = Person(name = Name(name="Hello", surname="World")
 val mutated: Person = person.mutate { 
-    name.surame = "Drill" 
+    name.surname = "Drill" 
 }
 ```
 
@@ -69,7 +69,7 @@ data class ListClass(
 )
 ```
 
-In order to support mutable like syntax for this types Drill provides two new Types `DrillList` and `DrillMap` that implement like kotlin `MutableList` and a `MutableMap` respectivly but perform some bookeeping in order to maintain data classes copy method semantics.  
+In order to support mutable like syntax for this types Drill provides two new Types `DrillList` and `DrillMap` that implement like kotlin `MutableList` and a `MutableMap` respectively but perform some bookkeeping in order to maintain data classes copy method semantics.  
 
 This way, we can easily modify items inside lists as if they were mutable lists of mutable items. 
 
@@ -114,7 +114,7 @@ object.mutate { // implicit `this` mandatory allocation
 
 For that reason, you should avoid traversing mutables object inside the `mutate` block if running in a critical section like a draw loop to prevent triggering a GC later down the line. Reverting back to regular `copy` will always be possible since original classes are not modified in any way.
 
-Semantics expected from mutable clases mimic behaviour from copy, including reference equality. That is, a non changed field will keep it's reference, so `===` operator will hold true for it's fields unless it was mutated.  
+Semantics expected from mutable classes mimic behaviour from copy, including reference equality. That is, a non changed field will keep it's reference, so `===` operator will hold true for it's fields unless it was mutated.  
 
 For lists and maps, changing any item in the underlying collection will trigger list or map recreation
 
