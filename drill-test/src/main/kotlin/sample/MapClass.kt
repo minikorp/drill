@@ -28,5 +28,5 @@ data class MapNullableTypeClass(
 @Drill
 data class NestedMapNullableTypeClass(
     val map: Map<String, Map<String, MapItem>?>,
-    val primitive: Map<String, Map<String?, Int>?>
+    val primitive: Map<String, Map<String, Int?>>
 )

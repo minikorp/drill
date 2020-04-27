@@ -77,4 +77,22 @@ internal class MapClassTest {
         }
         expectThat(mutated.map).isEmpty()
     }
+
+    @Test
+    fun `nested maps mutate`() {
+        val source = NestedMapNullableTypeClass(
+            map = mapOf(
+                "a" to mapOf(
+                    "a.1" to MapItem("a.1.text")
+                )
+            ),
+            primitive = mapOf("b" to mapOf("b.1" to 30))
+        )
+        val mutated = source.mutate {
+            map["a"]!!["a.1"]!!.text = "mutated"
+            primitive["b"]!!["b.1"] = null
+        }
+        expectThat(mutated.map["a"]?.get("a.1")?.text).isEqualTo("mutated")
+        expectThat(mutated.primitive["b"]?.get("b.1")).isNull()
+    }
 }
