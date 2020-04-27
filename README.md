@@ -1,9 +1,10 @@
 # Drill 👷
-Property drilling for Kotlin
+
+Drill is an utility library that makes working with immutable data classes easier by generating their mutable counterpart that is later _frozen_ back into their immutable form.
 
 ## Getting started
 
-Create a `data class` and annotate it with `@Drill`
+Create a `data class` and annotate it with `@Drill`.
 
 ```kotlin
 @Drill
@@ -13,7 +14,8 @@ data class Person(val name: String)
 When building, Drill will generate a mutable version of Person called `Person_Mutable` and an
 extension function `Person.mutate()` that works similar to default `apply` from standard libray.
 
-You can now "mutate" your data class similar to kotlin `copy(...)` method.
+You can now "mutate" your data class similar to kotlin `copy(...)` method from within the mutate 
+block as if your class was mutable.
 
 ```kotlin
 val person: Person = Person(name = "Hello")
@@ -67,7 +69,9 @@ data class ListClass(
 )
 ```
 
-In order to support mutable like syntax for this types Drill provides two new Types `DrillList` and `DrillMap` that implement like kotlin `MutableList` and a `MutableMap` respectivly but perform some bookeeping in order to maintain data classes copy method semantics.
+In order to support mutable like syntax for this types Drill provides two new Types `DrillList` and `DrillMap` that implement like kotlin `MutableList` and a `MutableMap` respectivly but perform some bookeeping in order to maintain data classes copy method semantics.  
+
+This way, we can easily modify items inside lists as if they were mutable lists of mutable items. 
 
 ```kotlin
 val source = ListClass(listOf(ListItem()))
@@ -84,8 +88,6 @@ val mutated = source.mutate {
 println(mutated) //ListClass(list=[ListItem(text=Hello I am first index), ListItem(text=Third item)])
 ```
 
-This way, we can easily modify items inside lists as if they were mutable lists of mutable items. 
-
 Maps behave in a similar way:
 
 ```
@@ -99,25 +101,28 @@ Check more example usages in the **[test module](https://github.com/minikorp/dri
 
 ## Performance and Reference Equality
 
-Only significant performance impact is one additional object allocation everytime a mutable object is read for the first time in a lazy fasion. This includes nested fields and items in both lists and maps. Mutable object creation is still lazy.  
-```kotlin
-object.mutate {
-    field = "reference" // no object allocation
-    nested.another = "nested" // mutable object created for `nested`
-    list[0].text = "list access" // mutable list and mutable item created
-}
+Only significant performance impact is one additional object allocation everytime a mutable object is read for the first time in a lazy fashion. This includes nested fields and items in both lists and maps.  
 
+```kotlin
+object.mutate { // implicit `this` mandatory allocation
+    field = "reference" // no object allocation
+    nested.another = "nested" // mutable object `nested` allocated
+    list.size // mutable list allocated
+    list[0].text = "list access" // mutable item [0] allocated
+}
 ```
 
-For that reason, you should avoid traversing the mutable object inside the `mutate` block if running in a critical section like a draw loop to avoid triggering a GC later down the line.
+For that reason, you should avoid traversing mutables object inside the `mutate` block if running in a critical section like a draw loop to prevent triggering a GC later down the line. Reverting back to regular `copy` will always be possible since original classes are not modified in any way.
 
-Semantics expected from mutable clases mimic expected behaviour from copy, including reference equality. That is, a non changed field will keep it's reference, so `===` operator will hold true unless field has mutated. For lists and maps, changing any item in the underlying items will trigger list and map recreation.
+Semantics expected from mutable clases mimic behaviour from copy, including reference equality. That is, a non changed field will keep it's reference, so `===` operator will hold true for it's fields unless it was mutated.  
+
+For lists and maps, changing any item in the underlying collection will trigger list or map recreation
 
 
 ## Importing
 
 Add common library and annotation processor (with `kapt` plugin) to your dependencies. 
-You can grab the latest version from the jitpack tag below:
+You can grab the latest version from the jitpack tag below or check in releases tab:
 
 [![](https://jitpack.io/v/minikorp/drill.svg)](https://jitpack.io/#minikorp/drill)
 
