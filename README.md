@@ -59,7 +59,7 @@ val mutated: Person = person.mutate {
 
 As well as nesting data classes lists and maps are also pretty common when describing models.
 
-```
+```kotlin
 @Drill
 data class ListItem(val text: String = "item")
 
