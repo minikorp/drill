@@ -90,7 +90,7 @@ println(mutated) //ListClass(list=[ListItem(text=Hello I am first index), ListIt
 
 Maps behave in a similar way:
 
-```
+```kotlin
 val source = MapClass()
 val newItem = MapItem("added")
 val mutated = source.mutate {
