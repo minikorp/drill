@@ -6,6 +6,8 @@ import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 @KotlinPoetMetadataPreview
 object ProcessorState {
 
+    val DEBUG = "false".toBoolean()
+
     private val mutableClasses: MutableMap<TypeName, MutableClassModel> = hashMapOf()
 
     fun registerMutableClass(classModel: MutableClassModel) {

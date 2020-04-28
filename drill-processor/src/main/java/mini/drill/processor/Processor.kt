@@ -1,7 +1,5 @@
 package mini.drill.processor
 
-import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import mini.drill.Drill
 import javax.annotation.processing.ProcessingEnvironment
@@ -28,12 +26,13 @@ class Processor {
 
             val mutableClasses = drillTypes.map { MutableClassModel(it.asTypeElement()) }
             mutableClasses.forEach { it.generate() }
-
         } catch (e: Throwable) {
-            val file = FileSpec.builder("mini", "DrillGenDebug")
-            file.addComment(e.stackTraceString())
-            file.addType(TypeSpec.classBuilder("DrillGenDebug").build())
-            file.build().writeToFile()
+            if (e !is ProcessorException) {
+                logError(
+                    "Drill compiler crashed, open an issue please!\n" +
+                            " ${e.stackTraceString()}"
+                )
+            }
         }
         return true
     }

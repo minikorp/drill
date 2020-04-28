@@ -7,6 +7,7 @@ import com.squareup.kotlinpoet.metadata.specs.toTypeSpec
 import mini.drill.DefaultDrillType
 import mini.drill.DrillType
 import mini.drill.processor.field.PropertyAdapter
+import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.TypeElement
 
 @KotlinPoetMetadataPreview
@@ -29,13 +30,44 @@ data class MutableClassModel(val typeElement: TypeElement) {
     private val fileBuilder: FileSpec.Builder
 
     private val spec: TypeSpec = typeElement.toTypeSpec()
-    private val properties: List<MutablePropertyModel> =
-        spec.propertySpecs.map { MutablePropertyModel(this, it) }
+    private val properties: List<MutablePropertyModel>
 
     val originalClassName: ClassName = typeElement.asClassName()
     private var adapters: List<PropertyAdapter> = emptyList()
 
     init {
+        processorAssertion(
+            "${spec.name} is not a data class",
+            spec.modifiers.contains(KModifier.DATA),
+            typeElement
+        )
+
+        // "Best" way to figure out what is actual main data class constructor
+        // is to find generated copy method that has same parameters as constructor
+
+        val constructors = typeElement.enclosedElements
+            .filter { it.isConstructor && it is ExecutableElement }
+            .map { it as ExecutableElement }
+            .filter { it.parameters.size > 0 }
+        //Data classes generate a no-args constructors skip them
+
+        if (constructors.size > 1) {
+            logWarning(
+                "More than one constructor in data class might lead to bad mutable class generation",
+                typeElement
+            )
+        }
+
+        //First constructor in JVM should always correspond to main data class constructor
+        val constructor = constructors[0]
+
+        //Match constructor from JVM signature parameters to properties extracted
+        //from KotlinPoet no other way for now without parsing kotlin metadata
+        val matchedProperties = constructor.parameters.mapNotNull { constructorParameter ->
+            spec.propertySpecs.find { it.name == constructorParameter.simpleName.toString() }
+        }
+        properties = matchedProperties.map { MutablePropertyModel(this, it) }
+
         mutableClassType =
             ClassName(
                 originalClassName.packageName,
@@ -47,12 +79,17 @@ data class MutableClassModel(val typeElement: TypeElement) {
             mutableClassType.simpleName
         )
 
+        if (ProcessorState.DEBUG) {
+            fileBuilder.addComment(spec.toString())
+        }
+
         ProcessorState.registerMutableClass(this)
     }
 
     fun generate() {
         try {
-            //Import mutable extension
+            //Import mutable extension, static dispatch will take care of the rest
+            //calling proper function
             fileBuilder.addImport("mini.drill", "toMutable")
             generateMutableClass()
             fileBuilder.addComment(debug.joinToString(separator = "\n")).build()

@@ -34,6 +34,7 @@ lateinit var typeUtils: Types
 
 val Element.isMethod: Boolean get() = this.kind == ElementKind.METHOD
 val Element.isClass: Boolean get() = this.kind == ElementKind.CLASS
+val Element.isConstructor: Boolean get() = this.kind == ElementKind.CONSTRUCTOR
 
 fun ExecutableElement.isSuspending(): Boolean {
     return parameters.last().asType().toString().startsWith("kotlin.coroutines.Continuation")
@@ -74,16 +75,16 @@ fun Element.getSuperClassTypeParameter(position: Int) = asTypeElement()
     .superclass.asDeclaredType().typeArguments[position].asElement()
 
 
-class CompilerException : IllegalStateException()
+class ProcessorException : IllegalStateException()
 
-fun compilerAssertion(
-    element: Element?,
+fun processorAssertion(
+    lazyMessage: String,
     assert: Boolean,
-    lazyMessage: () -> String
+    element: Element? = null
 ) {
     if (!assert) {
-        logError(lazyMessage(), element)
-        throw CompilerException()
+        logError(lazyMessage, element)
+        throw ProcessorException()
     }
 }
 
@@ -96,7 +97,7 @@ fun logWarning(message: String, element: Element? = null) {
 }
 
 fun logMessage(kind: Diagnostic.Kind, message: String, element: Element? = null) {
-    env.messager.printMessage(kind, message, element)
+    env.messager.printMessage(kind, "\n" + message, element)
 }
 
 //KotlinPoet utils

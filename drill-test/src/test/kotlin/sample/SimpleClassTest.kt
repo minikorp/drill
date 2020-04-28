@@ -21,6 +21,18 @@ internal class SimpleClassTest {
         expectThat(mutated.ignoredField).isEqualTo(source.ignoredField)
     }
 
+
+    @Test
+    fun `unrelated fields are not present`() {
+        SimpleClass(field = "1", ignoredField = "2")
+            .mutate {
+                val nonGeneratedProperty = this::class.memberProperties.find {
+                    it.name == SimpleClass::outsideField.name
+                }
+                expectThat(nonGeneratedProperty).isNull()
+            }
+    }
+
     @Test
     fun `ignore fields are ignored`() {
         val source = SimpleClass(field = "1", ignoredField = "2")
