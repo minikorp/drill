@@ -4,8 +4,8 @@ import java.util.function.Predicate
 
 @Suppress("UNCHECKED_CAST")
 class DrillMap<K, Immutable, Mutable>(
-    ref: Map<K, Immutable>,
     parent: DrillType<*>?,
+    ref: Map<K, Immutable>,
     private val mutate: (container: DrillType<*>, Immutable) -> Mutable,
     private val freeze: (Mutable) -> Immutable
 ) : MutableMap<K, Mutable>, DefaultDrillType<Map<K, Immutable>>(ref, parent) {
@@ -53,13 +53,21 @@ class DrillMap<K, Immutable, Mutable>(
         }
     }
 
-    private val items: HashMap<K, Entry> by lazy(LazyThreadSafetyMode.NONE) {
-        ref.mapValuesTo(LinkedHashMap()) { Entry(it.key, it.value) }
-    }
+    private var backingItems: Any = UNSET_VALUE
+    private var items: MutableMap<K, Entry>
+        get() {
+            if (backingItems === UNSET_VALUE) {
+                backingItems = ref().mapValuesTo(LinkedHashMap()) { Entry(it.key, it.value) }
+            }
+            return backingItems as MutableMap<K, Entry>
+        }
+        set(value) {
+            backingItems = value
+        }
 
     override fun freeze(): Map<K, Immutable> {
         return if (dirty()) {
-            items.mapValuesTo(HashMap()) { it.value.freeze() }
+            items.mapValuesTo(LinkedHashMap()) { it.value.freeze() }
         } else {
             return ref()
         }
@@ -157,5 +165,10 @@ fun <K, Mutable, Immutable> Map<K, Immutable>.toMutable(
     mutate: (container: DrillType<*>, Immutable) -> Mutable,
     freeze: (Mutable) -> Immutable
 ): DrillMap<K, Immutable, Mutable> {
-    return DrillMap(this, parent, mutate, freeze)
+    return DrillMap(
+        parent = parent,
+        ref = this,
+        mutate = mutate,
+        freeze = freeze
+    )
 }

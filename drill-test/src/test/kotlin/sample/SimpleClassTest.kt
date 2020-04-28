@@ -16,7 +16,6 @@ internal class SimpleClassTest {
         val source = SimpleClass(field = "1", ignoredField = "2")
         val mutated = source.mutate {
             field = "mutated"
-            println(this)
         }
         expectThat(mutated.field).isEqualTo("mutated")
         expectThat(mutated.ignoredField).isEqualTo(source.ignoredField)

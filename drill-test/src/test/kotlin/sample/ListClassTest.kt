@@ -20,7 +20,7 @@ internal class ListClassTest {
         val source = PrimitiveList(listOf(0, 1, 2))
         val mutated = source.mutate {
             list.add(30)
-            list.addAt(0, 999)
+            list.addElementAt(0, 999)
             expectThat(list[0]).isEqualTo(999)
             expectThat(list.last()).isEqualTo(30)
         }
@@ -54,7 +54,7 @@ internal class ListClassTest {
         val source = ListClass(list = listOf(ListItem()))
         val addedItem = ListItem("first")
         val mutated = source.mutate {
-            list.addAt(0, addedItem)
+            list.addElementAt(0, addedItem)
         }
         expectThat(mutated.list) {
             hasSize(2)
