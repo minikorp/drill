@@ -4,24 +4,21 @@ import java.util.function.Predicate
 
 @Suppress("UNCHECKED_CAST")
 class DrillMap<K, Immutable, Mutable>(
-    override var _ref: Map<K, Immutable>,
-    override val _parent: DrillType<*>?,
+    ref: Map<K, Immutable>,
+    parent: DrillType<*>?,
     private val mutate: (container: DrillType<*>, Immutable) -> Mutable,
     private val freeze: (Mutable) -> Immutable
-) : MutableMap<K, Mutable>, DrillType<Map<K, Immutable>> {
+) : MutableMap<K, Mutable>, DefaultDrillType<Map<K, Immutable>>(ref, parent) {
 
     private inner class Entry(
-        override val key: K,
-        override var _ref: Immutable
-    ) : DrillType<Immutable>, MutableMap.MutableEntry<K, Mutable> {
-        override val _parent = this@DrillMap
+        override val key: K, ref: Immutable
+    ) : DefaultDrillType<Immutable>(ref, this), MutableMap.MutableEntry<K, Mutable> {
         var backing: Any? = UNSET_VALUE
-        override var _dirty = false
 
         override var value: Mutable
             get() {
                 if (backing === UNSET_VALUE) {
-                    backing = _ref.run { mutate(this@Entry, this) }
+                    backing = ref().run { mutate(this@Entry, this) }
                 }
                 return backing as Mutable
             }
@@ -31,13 +28,12 @@ class DrillMap<K, Immutable, Mutable>(
             }
 
         override fun freeze(): Immutable {
-            if (_dirty) return freeze(value)
-            return _ref
+            if (dirty()) return freeze(value)
+            return ref()
         }
 
         override fun setValue(newValue: Mutable): Mutable {
-            value = newValue
-            _dirty = true
+            value = newValue.also { markDirty() }
             return newValue
         }
 
@@ -45,29 +41,27 @@ class DrillMap<K, Immutable, Mutable>(
             if (this === other) return true
             if (javaClass != other?.javaClass) return false
             other as DrillMap<*, *, *>.Entry
-            if (_ref != other._ref) return false
+            if (ref() != other.ref()) return false
             if (backing != other.backing) return false
             return true
         }
 
         override fun hashCode(): Int {
-            var result = _ref?.hashCode() ?: 0
+            var result = ref()?.hashCode() ?: 0
             result = 31 * result + (backing?.hashCode() ?: 0)
             return result
         }
     }
 
-    override var _dirty: Boolean = false
-
     private val items: HashMap<K, Entry> by lazy(LazyThreadSafetyMode.NONE) {
-        _ref.mapValuesTo(LinkedHashMap()) { Entry(it.key, it.value) }
+        ref.mapValuesTo(LinkedHashMap()) { Entry(it.key, it.value) }
     }
 
     override fun freeze(): Map<K, Immutable> {
-        return if (_dirty) {
+        return if (dirty()) {
             items.mapValuesTo(HashMap()) { it.value.freeze() }
         } else {
-            return _ref
+            return ref()
         }
     }
 

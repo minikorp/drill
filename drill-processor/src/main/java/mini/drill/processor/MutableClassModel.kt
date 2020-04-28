@@ -4,6 +4,7 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import com.squareup.kotlinpoet.metadata.specs.toTypeSpec
+import mini.drill.DefaultDrillType
 import mini.drill.DrillType
 import mini.drill.processor.field.PropertyAdapter
 import javax.lang.model.element.TypeElement
@@ -13,22 +14,23 @@ data class MutableClassModel(val typeElement: TypeElement) {
 
     companion object {
         const val SUFFIX = "_Mutable"
-        val SOURCE_PROPERTY = DrillType<*>::_ref.name
-        val DIRTY_PROPERTY = DrillType<*>::_dirty.name
-        val PARENT_PROPERTY = DrillType<*>::_parent.name
+        val SOURCE_PROPERTY = "${DrillType<*>::ref.name}()"
+        val DIRTY_PROPERTY = "${DrillType<*>::dirty.name}()"
+        val PARENT_PROPERTY = "${DrillType<*>::parent.name}()"
 
-        private val mutableInterfaceTypeName = DrillType::class.asClassName()
-        private val mutableInterfaceTypeNameStar = DrillType::class.asClassName()
-            .parameterizedBy(STAR)
-        val mutableInterfaceTypeNameStarNullable = mutableInterfaceTypeNameStar.copy(nullable = true)
+        private val baseType = DefaultDrillType::class.asClassName()
+        private val parentType = DrillType::class.asClassName().parameterizedBy(STAR)
+        private val nullableParentType = parentType.copy(nullable = true)
     }
 
     private val debug = ArrayList<String>()
+
     val mutableClassType: ClassName
-    val fileBuilder: FileSpec.Builder
+    private val fileBuilder: FileSpec.Builder
 
     private val spec: TypeSpec = typeElement.toTypeSpec()
-    private val properties: List<MutablePropertyModel> = spec.propertySpecs.map { MutablePropertyModel(this, it) }
+    private val properties: List<MutablePropertyModel> =
+        spec.propertySpecs.map { MutablePropertyModel(this, it) }
 
     val originalClassName: ClassName = typeElement.asClassName()
     private var adapters: List<PropertyAdapter> = emptyList()
@@ -68,34 +70,16 @@ data class MutableClassModel(val typeElement: TypeElement) {
         }
 
         val classBuilder = TypeSpec.classBuilder(mutableClassType)
-            .addSuperinterface(mutableInterfaceTypeName.parameterizedBy(originalClassName))
             .addKdoc("[%T]", originalClassName)
-            .addModifiers(KModifier.DATA)
             .primaryConstructor(
                 FunSpec.constructorBuilder()
-                    .addParameter(SOURCE_PROPERTY, originalClassName)
-                    .addParameter(PARENT_PROPERTY, mutableInterfaceTypeNameStarNullable)
-                    .build()
-            ).addProperty( //Source field
-                PropertySpec.builder(SOURCE_PROPERTY, originalClassName)
-                    .initializer(SOURCE_PROPERTY)
-                    .addModifiers(KModifier.OVERRIDE)
-                    .mutable(true)
+                    .addParameter(DrillType<*>::ref.name, originalClassName)
+                    .addParameter(DrillType<*>::parent.name, nullableParentType)
                     .build()
             )
-            .addProperty( //Parent field
-                PropertySpec.builder(PARENT_PROPERTY, mutableInterfaceTypeNameStarNullable)
-                    .initializer(PARENT_PROPERTY)
-                    .addModifiers(KModifier.OVERRIDE)
-                    .build()
-            )
-            .addProperty( //Dirty field
-                PropertySpec.builder(DIRTY_PROPERTY, BOOLEAN)
-                    .mutable(true)
-                    .addModifiers(KModifier.OVERRIDE)
-                    .initializer("false")
-                    .build()
-            )
+            .superclass(baseType.parameterizedBy(originalClassName))
+            .addSuperclassConstructorParameter("ref")
+            .addSuperclassConstructorParameter("parent")
 
         generateGenericFunctions(classBuilder)
         adapters.map { it.generate(classBuilder) }
@@ -131,15 +115,12 @@ data class MutableClassModel(val typeElement: TypeElement) {
             .returns(mutableClassType)
             .receiver(originalClassName)
             .addParameter(
-                ParameterSpec.builder("parent", mutableInterfaceTypeNameStarNullable)
+                ParameterSpec.builder("parent", nullableParentType)
                     .defaultValue("null")
                     .build()
             )
             .addStatement("return %T(this, parent)", mutableClassType)
             .build()
-
-        val x = ""
-        x.let { }
 
         val mutateExtension = FunSpec.builder("mutate")
             .addModifiers(KModifier.INLINE)

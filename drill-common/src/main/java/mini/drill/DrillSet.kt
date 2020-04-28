@@ -3,22 +3,18 @@ package mini.drill
 
 @Suppress("UNCHECKED_CAST")
 class DrillSet<Immutable, Mutable>(
-    override var _ref: Set<Immutable>,
-    override val _parent: DrillType<*>?,
+    ref: Set<Immutable>,
+    parent: DrillType<*>?,
     private val mutate: (container: DrillType<*>, Immutable) -> Mutable,
     private val freeze: (Mutable) -> Immutable
-) : MutableSet<Mutable>, DrillType<Set<Immutable>> {
+) : MutableSet<Mutable>, DefaultDrillType<Set<Immutable>>(ref, parent) {
 
-    private inner class Entry(
-        override var _ref: Immutable
-    ) : DrillType<Immutable> {
-        override val _parent = this@DrillSet
+    private inner class Entry(ref: Immutable) : DefaultDrillType<Immutable>(ref, this) {
         var backing: Any? = UNSET_VALUE
-        override var _dirty = false
         var value: Mutable
             get() {
                 if (backing === UNSET_VALUE) {
-                    backing = _ref.run { mutate(this@Entry, this) }
+                    backing = ref().run { mutate(this@Entry, this) }
                 }
                 return backing as Mutable
             }
@@ -28,34 +24,32 @@ class DrillSet<Immutable, Mutable>(
             }
 
         override fun freeze(): Immutable {
-            if (_dirty) return freeze(value)
-            return _ref
+            if (dirty()) return freeze(value)
+            return ref()
         }
 
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (javaClass != other?.javaClass) return false
             other as DrillSet<*, *>.Entry
-            if (_ref != other._ref) return false
+            if (ref() != other.ref()) return false
             if (backing != other.backing) return false
             return true
         }
 
         override fun hashCode(): Int {
-            var result = _ref?.hashCode() ?: 0
+            var result = ref()?.hashCode() ?: 0
             result = 31 * result + (backing?.hashCode() ?: 0)
             return result
         }
     }
 
-    override var _dirty = false
-
     private val items: MutableSet<Entry> by lazy(LazyThreadSafetyMode.NONE) {
-        _ref.mapTo(LinkedHashSet()) { Entry(it) }
+        ref.mapTo(LinkedHashSet()) { Entry(it) }
     }
 
     override fun freeze(): Set<Immutable> {
-        return if (_dirty) items.mapTo(LinkedHashSet()) { it.freeze() } else _ref
+        return if (dirty()) items.mapTo(LinkedHashSet()) { it.freeze() } else ref()
     }
 
     override val size: Int get() = items.size
@@ -107,11 +101,11 @@ class DrillSet<Immutable, Mutable>(
     }
 
     fun retainAll(elements: Collection<Immutable>) {
-        items.retainAll { elements.contains(it._ref) }.also { markDirty() }
+        items.retainAll { elements.contains(it.ref()) }.also { markDirty() }
     }
 
     fun remove(element: Immutable) {
-        items.removeIf { it._ref == element }.also { markDirty() }
+        items.removeIf { it.ref() == element }.also { markDirty() }
     }
 
     /** Similar to [add] can't share name due to type erasure generating same signature */

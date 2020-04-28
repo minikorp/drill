@@ -28,8 +28,7 @@ class SimplePropertyAdapter(sourceProp: MutablePropertyModel) : PropertyAdapter(
                 .setter(
                     FunSpec.setterBuilder()
                         .addParameter("value", sourceProp.type)
-                        .addStatement("field = value")
-                        .addStatement("markDirty()")
+                        .addCode("field = value.also { markDirty() }")
                         .build()
                 ).build()
         )

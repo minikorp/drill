@@ -6,11 +6,9 @@ import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import mini.drill.Drill
 import javax.annotation.processing.ProcessingEnvironment
 import javax.annotation.processing.RoundEnvironment
-import javax.lang.model.SourceVersion
 
 @KotlinPoetMetadataPreview
 class Processor {
-    val supportedSourceVersion: SourceVersion = SourceVersion.RELEASE_8
     val supportedAnnotationTypes: MutableSet<String> = mutableSetOf(Drill::class.java)
         .map { it.canonicalName }
         .toMutableSet()
@@ -23,7 +21,6 @@ class Processor {
 
     fun process(roundEnvironment: RoundEnvironment): Boolean {
         try {
-
             val drillTypes = roundEnvironment
                 .getElementsAnnotatedWith(Drill::class.java)
                 .filter { it.isClass }
@@ -38,7 +35,6 @@ class Processor {
             file.addType(TypeSpec.classBuilder("DrillGenDebug").build())
             file.build().writeToFile()
         }
-
         return true
     }
 }
