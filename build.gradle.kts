@@ -1,3 +1,5 @@
+import java.util.*
+
 plugins {
     java
     kotlin("jvm") version "1.3.72"
@@ -10,17 +12,58 @@ fun runCommand(command: String): String {
     return stream.reader().readText().trim()
 }
 
+val localProperties = run {
+    val props = Properties()
+    val file = file("$rootDir/local.properties")
+    if (file.exists()) props.load(file.inputStream())
+    props
+}
+
 allprojects {
-
-    apply(plugin = "maven-publish")
-    group = "mini.drill"
-    version = runCommand("scripts/latest-version.sh")
-
     repositories {
         mavenCentral()
         jcenter()
         google()
     }
+}
+
+subprojects {
+
+    apply(plugin = "maven-publish")
+    group = "mini.drill"
+    version = runCommand("$rootDir/scripts/latest-version.sh")
+
+    val modules = arrayOf("drill-common", "drill-processor")
+    if (this.name in modules) {
+        afterEvaluate {
+
+            val sourcesJar by tasks.creating(Jar::class) {
+                archiveClassifier.set("sources")
+                from(sourceSets["main"].allSource)
+            }
+
+            this.publishing {
+                repositories {
+                    maven {
+                        name = "GitHubPackages"
+                        url = uri("https://maven.pkg.github.com/minikorp/drill")
+                        credentials {
+                            username = localProperties["gpr.username"] as String? ?: System.getenv("username")
+                            password = localProperties["gpr.token"] as String? ?: System.getenv("token")
+                        }
+                    }
+                }
+
+                publications {
+                    register("gpr", MavenPublication::class) {
+                        from(components["java"])
+                        artifact(sourcesJar)
+                    }
+                }
+            }
+        }
+    }
+
 }
 
 dependencies {
