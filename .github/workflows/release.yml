@@ -28,7 +28,7 @@ jobs:
       - name: maven publish
         run: |
           cd $GITHUB_WORKSPACE
-          sh gradle publish
+          sh gradlew publish
         env:
           username: ${{ secrets.username }}
           password: ${{ secrets.token }}
