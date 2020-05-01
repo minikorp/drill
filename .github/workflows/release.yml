@@ -31,4 +31,4 @@ jobs:
           sh gradlew publish
         env:
           username: ${{ secrets.username }}
-          password: ${{ secrets.token }}
+          token: ${{ secrets.token }}
