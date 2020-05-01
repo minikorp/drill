@@ -22,9 +22,9 @@ jobs:
 
       # Runs a set of commands using the runners shell
       - name: generate release
-      - with:
-          username: ${{ secrets.username }}
-          password: ${{ secrets.token }}
         run: |
           cd $GITHUB_WORKSPACE
           sh scripts/release.sh
+        env:
+          username: ${{ secrets.username }}
+          password: ${{ secrets.token }}
