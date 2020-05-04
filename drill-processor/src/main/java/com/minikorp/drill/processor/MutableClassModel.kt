@@ -1,12 +1,12 @@
-package mini.drill.processor
+package com.minikorp.drill.processor
 
+import com.minikorp.drill.DefaultDrillType
+import com.minikorp.drill.DrillType
+import com.minikorp.drill.processor.field.PropertyAdapter
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import com.squareup.kotlinpoet.metadata.specs.toTypeSpec
-import mini.drill.DefaultDrillType
-import mini.drill.DrillType
-import mini.drill.processor.field.PropertyAdapter
 import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.TypeElement
 
@@ -66,7 +66,12 @@ data class MutableClassModel(val typeElement: TypeElement) {
         val matchedProperties = constructor.parameters.mapNotNull { constructorParameter ->
             spec.propertySpecs.find { it.name == constructorParameter.simpleName.toString() }
         }
-        properties = matchedProperties.map { MutablePropertyModel(this, it) }
+        properties = matchedProperties.map {
+            MutablePropertyModel(
+                this,
+                it
+            )
+        }
 
         mutableClassType =
             ClassName(
@@ -90,7 +95,7 @@ data class MutableClassModel(val typeElement: TypeElement) {
         try {
             //Import mutable extension, static dispatch will take care of the rest
             //calling proper function
-            fileBuilder.addImport("mini.drill", "toMutable")
+            fileBuilder.addImport(DrillType::class.asClassName().packageName, "toMutable")
             generateMutableClass()
             fileBuilder.addComment(debug.joinToString(separator = "\n")).build()
         } catch (e: Throwable) {
@@ -111,7 +116,10 @@ data class MutableClassModel(val typeElement: TypeElement) {
             .primaryConstructor(
                 FunSpec.constructorBuilder()
                     .addParameter(DrillType<*>::ref.name, originalClassName)
-                    .addParameter(DrillType<*>::parent.name, nullableParentType)
+                    .addParameter(
+                        DrillType<*>::parent.name,
+                        nullableParentType
+                    )
                     .build()
             )
             .superclass(baseType.parameterizedBy(originalClassName))
@@ -137,7 +145,7 @@ data class MutableClassModel(val typeElement: TypeElement) {
             .returns(originalClassName)
             .addModifiers(KModifier.OVERRIDE)
             .addAnnotation(suppressAnnotation(UNCHECKED))
-            .beginControlFlow("if (${DIRTY_PROPERTY})")
+            .beginControlFlow("if ($DIRTY_PROPERTY)")
             .addStatement("return %T($callArgs)", originalClassName)
             .endControlFlow()
             .addStatement("return $SOURCE_PROPERTY")
@@ -152,7 +160,10 @@ data class MutableClassModel(val typeElement: TypeElement) {
             .returns(mutableClassType)
             .receiver(originalClassName)
             .addParameter(
-                ParameterSpec.builder("parent", nullableParentType)
+                ParameterSpec.builder(
+                    "parent",
+                    nullableParentType
+                )
                     .defaultValue("null")
                     .build()
             )

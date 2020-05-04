@@ -1,9 +1,9 @@
-package mini.drill.processor.field
+package com.minikorp.drill.processor.field
 
+import com.minikorp.drill.processor.MutablePropertyModel
+import com.minikorp.drill.processor.ProcessorState
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
-import mini.drill.processor.MutablePropertyModel
-import mini.drill.processor.ProcessorState
 
 @KotlinPoetMetadataPreview
 class ReferencePropertyAdapter(sourceProp: MutablePropertyModel) : PropertyAdapter(sourceProp) {
@@ -36,7 +36,8 @@ class ReferencePropertyAdapter(sourceProp: MutablePropertyModel) : PropertyAdapt
                 .getter(
                     FunSpec.getterBuilder()
                         .beginControlFlow(
-                            "if (${backingPropertyName} === %T)", unsetClassName
+                            "if (${backingPropertyName} === %T)",
+                            unsetClassName
                         )
                         .addStatement("$backingPropertyName = ${refPropertyAccessor}${call}toMutable(this)")
                         .endControlFlow()

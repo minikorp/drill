@@ -1,4 +1,4 @@
-package mini.drill.processor;
+package com.minikorp.drill.processor;
 
 import net.ltgt.gradle.incap.IncrementalAnnotationProcessor;
 import net.ltgt.gradle.incap.IncrementalAnnotationProcessorType;

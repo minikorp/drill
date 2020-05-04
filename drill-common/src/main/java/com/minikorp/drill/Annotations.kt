@@ -1,12 +1,17 @@
-package mini.drill
+package com.minikorp.drill
 
 import java.lang.annotation.Inherited
 
 
-@Target(AnnotationTarget.TYPE, AnnotationTarget.CLASS, AnnotationTarget.FIELD)
+@Target(AnnotationTarget.TYPE, AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 @Inherited
-annotation class Drill(
+annotation class Drill
+
+
+@Target(AnnotationTarget.FIELD)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class DrillProperty(
     /**
      * Whether this field should appear in the generated class
      */
@@ -19,5 +24,3 @@ annotation class Drill(
     val asReference: Boolean = false
 )
 
-/** @hide */
-object UNSET_VALUE

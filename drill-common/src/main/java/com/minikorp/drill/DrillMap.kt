@@ -1,4 +1,4 @@
-package mini.drill
+package com.minikorp.drill
 
 import java.util.function.Predicate
 

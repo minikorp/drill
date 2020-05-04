@@ -30,7 +30,7 @@ allprojects {
 subprojects {
 
     apply(plugin = "maven-publish")
-    group = "mini.drill"
+    group = "com.minikorp"
     version = runCommand("$rootDir/scripts/latest-version.sh")
 
     val modules = arrayOf("drill-common", "drill-processor")

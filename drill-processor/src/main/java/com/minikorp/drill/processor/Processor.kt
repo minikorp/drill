@@ -1,7 +1,7 @@
-package mini.drill.processor
+package com.minikorp.drill.processor
 
+import com.minikorp.drill.Drill
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
-import mini.drill.Drill
 import javax.annotation.processing.ProcessingEnvironment
 import javax.annotation.processing.RoundEnvironment
 

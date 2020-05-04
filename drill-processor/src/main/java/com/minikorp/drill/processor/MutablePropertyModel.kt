@@ -1,8 +1,8 @@
-package mini.drill.processor
+package com.minikorp.drill.processor
 
+import com.minikorp.drill.DrillProperty
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
-import mini.drill.Drill
 import javax.lang.model.element.Element
 
 @KotlinPoetMetadataPreview
@@ -16,10 +16,12 @@ data class MutablePropertyModel(
         it.simpleName.toString() == sourceProp.name
     } ?: throw UnsupportedOperationException("Matching field for ${sourceProp.name} not found")
 
-    private val drillAnnotation: Drill? = typeElement.getAnnotation(Drill::class.java)
+    private val annotation: DrillProperty? = typeElement.getAnnotation(
+        DrillProperty::class.java
+    )
 
-    val ignore: Boolean get() = drillAnnotation?.ignore ?: false
-    val asReference: Boolean get() = drillAnnotation?.asReference ?: false
+    val ignore: Boolean get() = annotation?.ignore ?: false
+    val asReference: Boolean get() = annotation?.asReference ?: false
 
     val type get() = sourceProp.type
     val name get() = sourceProp.name

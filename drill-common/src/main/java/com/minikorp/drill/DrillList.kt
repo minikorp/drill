@@ -1,4 +1,4 @@
-package mini.drill
+package com.minikorp.drill
 
 
 @Suppress("UNCHECKED_CAST")

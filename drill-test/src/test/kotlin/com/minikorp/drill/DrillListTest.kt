@@ -1,4 +1,4 @@
-package mini.drill
+package com.minikorp.drill
 
 import org.junit.jupiter.api.Test
 import sample.ListItem

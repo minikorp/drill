@@ -1,6 +1,6 @@
 package sample
 
-import mini.drill.Drill
+import com.minikorp.drill.Drill
 
 @Drill
 data class ListItem(val text: String = "item")

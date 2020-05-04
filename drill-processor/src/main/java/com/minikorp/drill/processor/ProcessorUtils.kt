@@ -1,4 +1,4 @@
-package mini.drill.processor
+package com.minikorp.drill.processor
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy

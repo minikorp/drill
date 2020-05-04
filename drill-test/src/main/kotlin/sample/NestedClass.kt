@@ -1,11 +1,12 @@
 package sample
 
-import mini.drill.Drill
+import com.minikorp.drill.Drill
+import com.minikorp.drill.DrillProperty
 
 @Drill
 data class NestedClass(
     val nested: Child = Child("nested"),
-    @Drill(asReference = true)
+    @DrillProperty(asReference = true)
     val nested2: Child = Child("nested2")
 )
 

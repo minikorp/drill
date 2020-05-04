@@ -1,10 +1,10 @@
-package mini.drill.processor.field
+package com.minikorp.drill.processor.field
 
+import com.minikorp.drill.UNSET_VALUE
+import com.minikorp.drill.processor.MutableClassModel
+import com.minikorp.drill.processor.MutablePropertyModel
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
-import mini.drill.UNSET_VALUE
-import mini.drill.processor.MutableClassModel
-import mini.drill.processor.MutablePropertyModel
 
 @KotlinPoetMetadataPreview
 abstract class PropertyAdapter(val sourceProp: MutablePropertyModel) {
@@ -21,10 +21,14 @@ abstract class PropertyAdapter(val sourceProp: MutablePropertyModel) {
                 sourceProp.asReference -> {
                     SimplePropertyAdapter(sourceProp)
                 }
-                ReferencePropertyAdapter.supportsType(type) -> {
+                ReferencePropertyAdapter.supportsType(
+                    type
+                ) -> {
                     ReferencePropertyAdapter(sourceProp)
                 }
-                CollectionPropertyAdapter.supportsType(type) -> {
+                CollectionPropertyAdapter.supportsType(
+                    type
+                ) -> {
                     CollectionPropertyAdapter(sourceProp)
                 }
                 else -> SimplePropertyAdapter(sourceProp)
@@ -51,7 +55,10 @@ abstract class PropertyAdapter(val sourceProp: MutablePropertyModel) {
         ANY.copy(nullable = true)
     ).addModifiers(KModifier.PRIVATE)
         .mutable(true)
-        .initializer("%T", unsetClassName)
+        .initializer(
+            "%T",
+            unsetClassName
+        )
         .build()
 
 

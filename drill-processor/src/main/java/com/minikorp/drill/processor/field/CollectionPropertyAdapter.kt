@@ -1,11 +1,11 @@
-package mini.drill.processor.field
+package com.minikorp.drill.processor.field
 
+import com.minikorp.drill.DrillList
+import com.minikorp.drill.DrillMap
+import com.minikorp.drill.processor.*
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
-import mini.drill.DrillList
-import mini.drill.DrillMap
-import mini.drill.processor.*
 
 @KotlinPoetMetadataPreview
 class CollectionPropertyAdapter(sourceProp: MutablePropertyModel) : PropertyAdapter(sourceProp) {
@@ -61,9 +61,15 @@ class CollectionPropertyAdapter(sourceProp: MutablePropertyModel) : PropertyAdap
             .mutable(false)
             .getter(
                 FunSpec.getterBuilder()
-                    .addAnnotation(suppressAnnotation(UNCHECKED, NAME_SHADOWING))
+                    .addAnnotation(
+                        suppressAnnotation(
+                            UNCHECKED,
+                            NAME_SHADOWING
+                        )
+                    )
                     .beginControlFlow(
-                        "if (${backingPropertyName} === %T)", unsetClassName
+                        "if (${backingPropertyName} === %T)",
+                        unsetClassName
                     )
                     .addStatement("$backingPropertyName = ${refPropertyAccessor}.let { ")
                     .addStatement("val container = this")

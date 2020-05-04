@@ -1,4 +1,4 @@
-package mini.drill.processor
+package com.minikorp.drill.processor
 
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview

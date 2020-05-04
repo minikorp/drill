@@ -1,12 +1,12 @@
-package mini.drill.processor.field
+package com.minikorp.drill.processor.field
 
+import com.minikorp.drill.processor.MutableClassModel
+import com.minikorp.drill.processor.MutablePropertyModel
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
-import mini.drill.processor.MutableClassModel
-import mini.drill.processor.MutablePropertyModel
 
 /**
  * Plain reference that just makes val -> var

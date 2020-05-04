@@ -1,6 +1,14 @@
-package mini.drill
+package com.minikorp.drill
 
-@Suppress("PropertyName")
+/**
+ * Special token to mark property as unset
+ */
+@Suppress("ClassName")
+object UNSET_VALUE
+
+/**
+ * Base interface for mutable types, with method properties to avoid name collisions with user classes.
+ */
 interface DrillType<T> {
 
     fun ref(): T
@@ -24,6 +32,9 @@ interface DrillType<T> {
     fun freeze(): T
 }
 
+/**
+ * Basic implementation with actual backing properties.
+ */
 abstract class DefaultDrillType<T>(
     private var ref: T,
     private val parent: DrillType<*>?
@@ -50,11 +61,8 @@ abstract class DefaultDrillType<T>(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
-
         other as DefaultDrillType<*>
-
         if (ref != other.ref) return false
-
         return true
     }
 

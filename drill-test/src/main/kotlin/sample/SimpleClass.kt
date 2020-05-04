@@ -1,11 +1,12 @@
 package sample
 
-import mini.drill.Drill
+import com.minikorp.drill.Drill
+import com.minikorp.drill.DrillProperty
 
 @Drill
 data class SimpleClass(
     val field: String,
-    @Drill(ignore = true)
+    @DrillProperty(ignore = true)
     val ignoredField: String
 ) {
     val outsideField = field + "outside"
