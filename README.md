@@ -126,7 +126,19 @@ You can grab the latest version from github maven repository or jitpack:
 
 [![](https://jitpack.io/v/minikorp/drill.svg)](https://jitpack.io/#minikorp/drill)
 
+Github Package Registry:
+
 ```kotlin
+    implementation("com.minikorp:drill:drill-common:$DRILL_VERSION")
+    kapt("com.minikorp:drill-processor:$DRILL_VERSION")
+```
+
+Jitpack: 
+
+```kotlin
+repositories {
+    maven { url = uri("https://jitpack.io") }
+}
 implementation("com.github.minikorp.drill:drill-common:$DRILL_VERSION")
 kapt("com.github.minikorp.drill:drill-processor:$DRILL_VERSION")
 ```
