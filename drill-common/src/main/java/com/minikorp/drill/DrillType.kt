@@ -4,7 +4,9 @@ package com.minikorp.drill
  * Special token to mark property as unset
  */
 @Suppress("ClassName")
-object UNSET_VALUE
+object UNSET_VALUE {
+    override fun toString(): String = "unset"
+}
 
 /**
  * Base interface for mutable types, with method properties to avoid name collisions with user classes.

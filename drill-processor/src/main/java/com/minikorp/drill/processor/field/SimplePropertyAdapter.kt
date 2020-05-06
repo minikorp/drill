@@ -2,10 +2,7 @@ package com.minikorp.drill.processor.field
 
 import com.minikorp.drill.processor.MutableClassModel
 import com.minikorp.drill.processor.MutablePropertyModel
-import com.squareup.kotlinpoet.CodeBlock
-import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.PropertySpec
-import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 
 /**
@@ -16,6 +13,15 @@ class SimplePropertyAdapter(sourceProp: MutablePropertyModel) : PropertyAdapter(
 
     override val freezeExpression: CodeBlock
         get() = CodeBlock.of(sourceProp.name)
+
+    override val isDirtyExpression: CodeBlock
+        get() = CodeBlock.of("$refPropertyAccessor !== ${sourceProp.name}")
+
+    override val stringExpression: CodeBlock
+        get() {
+            val quote = if (sourceProp.type == STRING) "\\\"" else ""
+            return CodeBlock.of("$quote\${$refPropertyAccessor}$quote -> $quote\${${sourceProp.name}}$quote")
+        }
 
     override fun generate(builder: TypeSpec.Builder) {
         builder.addProperty(

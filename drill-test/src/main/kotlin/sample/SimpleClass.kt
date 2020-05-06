@@ -7,7 +7,7 @@ import com.minikorp.drill.DrillProperty
 data class SimpleClass(
     val field: String,
     @DrillProperty(ignore = true)
-    val ignoredField: String
+    val ignoredField: String = ""
 ) {
     val outsideField = field + "outside"
 

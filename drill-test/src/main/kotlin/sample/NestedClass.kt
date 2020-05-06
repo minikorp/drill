@@ -7,7 +7,10 @@ import com.minikorp.drill.DrillProperty
 data class NestedClass(
     val nested: Child = Child("nested"),
     @DrillProperty(asReference = true)
-    val nested2: Child = Child("nested2")
+    val nested2: Child = Child("nested2"),
+    @DrillProperty(asReference = true)
+    val nested3: Child? = Child("nested3")
+
 )
 
 @Drill

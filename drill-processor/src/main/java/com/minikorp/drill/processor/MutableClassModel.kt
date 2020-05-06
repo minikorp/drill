@@ -3,6 +3,7 @@ package com.minikorp.drill.processor
 import com.minikorp.drill.DefaultDrillType
 import com.minikorp.drill.DrillType
 import com.minikorp.drill.processor.field.PropertyAdapter
+import com.minikorp.drill.processor.field.SimplePropertyAdapter
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
@@ -14,7 +15,7 @@ import javax.lang.model.element.TypeElement
 data class MutableClassModel(val typeElement: TypeElement) {
 
     companion object {
-        const val SUFFIX = "_Mutable"
+        private const val DRILL_SUFFIX = "Mutable"
         val SOURCE_PROPERTY = "${DrillType<*>::ref.name}()"
         val DIRTY_PROPERTY = "${DrillType<*>::dirty.name}()"
         val PARENT_PROPERTY = "${DrillType<*>::parent.name}()"
@@ -32,7 +33,7 @@ data class MutableClassModel(val typeElement: TypeElement) {
     private val spec: TypeSpec = typeElement.toTypeSpec()
     private val properties: List<MutablePropertyModel>
 
-    val originalClassName: ClassName = typeElement.asClassName()
+    val originalClassType: ClassName = typeElement.asClassName()
     private var adapters: List<PropertyAdapter> = emptyList()
 
     init {
@@ -75,8 +76,8 @@ data class MutableClassModel(val typeElement: TypeElement) {
 
         mutableClassType =
             ClassName(
-                originalClassName.packageName,
-                "${originalClassName.simpleNames.joinToString("_")}$SUFFIX"
+                originalClassType.packageName,
+                "${originalClassType.simpleNames.joinToString("_")}$DRILL_SUFFIX"
             )
 
         fileBuilder = FileSpec.builder(
@@ -112,17 +113,17 @@ data class MutableClassModel(val typeElement: TypeElement) {
         }
 
         val classBuilder = TypeSpec.classBuilder(mutableClassType)
-            .addKdoc("[%T]", originalClassName)
+            .addKdoc("[%T]", originalClassType)
             .primaryConstructor(
                 FunSpec.constructorBuilder()
-                    .addParameter(DrillType<*>::ref.name, originalClassName)
+                    .addParameter(DrillType<*>::ref.name, originalClassType)
                     .addParameter(
                         DrillType<*>::parent.name,
                         nullableParentType
                     )
                     .build()
             )
-            .superclass(baseType.parameterizedBy(originalClassName))
+            .superclass(baseType.parameterizedBy(originalClassType))
             .addSuperclassConstructorParameter("ref")
             .addSuperclassConstructorParameter("parent")
 
@@ -142,23 +143,47 @@ data class MutableClassModel(val typeElement: TypeElement) {
             "${it.sourceProp.name} = ${it.freezeExpression}"
         }
         val freezeFun = FunSpec.builder("freeze")
-            .returns(originalClassName)
+            .returns(originalClassType)
             .addModifiers(KModifier.OVERRIDE)
             .addAnnotation(suppressAnnotation(UNCHECKED))
             .beginControlFlow("if ($DIRTY_PROPERTY)")
-            .addStatement("return %T($callArgs)", originalClassName)
+            .addStatement("return %T($callArgs)", originalClassType)
             .endControlFlow()
             .addStatement("return $SOURCE_PROPERTY")
             .build()
 
+        val toStringFun = FunSpec.builder("toString")
+            .addModifiers(KModifier.OVERRIDE)
+            .returns(String::class)
+            .addStatement("val sb = %T()", StringBuilder::class)
+            .apply {
+                adapters
+                    .filter { !it.sourceProp.ignore }//Don't generate for ignored fields
+                    .forEach { adapter ->
+                        beginControlFlow("if (${adapter.isDirtyExpression})")
+                        addCode("sb.append(")
+                        if (adapter is SimplePropertyAdapter) {
+                            addCode(""""\n", "${adapter.sourceProp.name}: ${adapter.stringExpression}"""")
+                        } else {
+                            addCode(""""\n", "${adapter.sourceProp.name}: ", "${adapter.stringExpression}"""")
+                        }
+                        addCode(")")
+                        endControlFlow()
+                    }
+            }
+            .addStatement("""return "{" + sb.toString().prependIndent("  ") + "\n}"""")
+            .build()
+
+        classBuilder.addFunction(toStringFun)
         classBuilder.addFunction(freezeFun)
 
     }
 
     private fun generateMutateExtension(fileBuilder: FileSpec.Builder) {
+
         val toMutableExtension = FunSpec.builder("toMutable")
             .returns(mutableClassType)
-            .receiver(originalClassName)
+            .receiver(originalClassType)
             .addParameter(
                 ParameterSpec.builder(
                     "parent",
@@ -168,6 +193,26 @@ data class MutableClassModel(val typeElement: TypeElement) {
                     .build()
             )
             .addStatement("return %T(this, parent)", mutableClassType)
+            .build()
+
+        val produceExtension = FunSpec.builder("produce")
+            .addModifiers(KModifier.INLINE)
+            .addParameter(
+                ParameterSpec
+                    .builder(
+                        "block", LambdaTypeName.get(
+                            receiver = mutableClassType,
+                            returnType = Unit::class.asClassName()
+                        )
+                    )
+                    .addModifiers(KModifier.CROSSINLINE)
+                    .build()
+            )
+            .returns(mutableClassType)
+            .receiver(originalClassType)
+            .addStatement("val mutable = this.${toMutableExtension.name}()")
+            .addStatement("mutable.block()")
+            .addStatement("return mutable")
             .build()
 
         val mutateExtension = FunSpec.builder("mutate")
@@ -183,13 +228,12 @@ data class MutableClassModel(val typeElement: TypeElement) {
                     .addModifiers(KModifier.CROSSINLINE)
                     .build()
             )
-            .returns(originalClassName)
-            .receiver(originalClassName)
-            .addStatement("val mutable = this.${toMutableExtension.name}()")
-            .addStatement("mutable.block()")
-            .addStatement("return mutable.freeze()")
+            .returns(originalClassType)
+            .receiver(originalClassType)
+            .addStatement("return this.${produceExtension.name}(block).freeze()")
             .build()
 
+        fileBuilder.addFunction(produceExtension)
         fileBuilder.addFunction(mutateExtension)
         fileBuilder.addFunction(toMutableExtension)
     }

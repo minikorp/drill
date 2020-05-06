@@ -33,8 +33,6 @@ class CollectionPropertyAdapter(sourceProp: MutablePropertyModel) : PropertyAdap
 
         val supportedAdapters = mapOf<TypeName, (ParameterizedTypeName, TypeName) -> TypeName>(
             LIST to listGenerator,
-            MUTABLE_LIST to listGenerator,
-            MUTABLE_MAP to mapGenerator,
             MAP to mapGenerator
         )
 

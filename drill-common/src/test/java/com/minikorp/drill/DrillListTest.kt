@@ -1,17 +1,15 @@
 package com.minikorp.drill
 
 import org.junit.jupiter.api.Test
-import sample.ListItem
-import sample.ListItem_Mutable
-import sample.toMutable
+
 import strikt.api.expectThat
 import strikt.assertions.*
 
 internal class DrillListTest {
 
-    private inline fun <T : List<ListItem>> T.mutate(
-        crossinline block: DrillList<ListItem, ListItem_Mutable>.() -> Unit
-    ): List<ListItem> {
+    private inline fun <T : List<CollectionItem>> T.mutate(
+        crossinline block: DrillList<CollectionItem, CollectionItemMutable>.() -> Unit
+    ): List<CollectionItem> {
         val mutable = this.toMutable(
             parent = null,
             mutate = { container, it -> it.toMutable(container) },
@@ -21,16 +19,8 @@ internal class DrillListTest {
         return mutable.freeze()
     }
 
-    private val sampleItem = ListItem("1")
-    private val sampleItem2 = ListItem("2")
-
-    private val emptyList = listOf<ListItem>()
+    private val emptyList = listOf<CollectionItem>()
     private val listWithItems = listOf(sampleItem, sampleItem2)
-
-    @Test
-    fun freeze() {
-        sampleItem.toMutable()
-    }
 
     @Test
     fun `getting by index returns the element`() {

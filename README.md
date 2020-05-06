@@ -11,7 +11,7 @@ Create a `data class` and annotate it with `@Drill`.
 data class Person(val name: String)
 ```
 
-When building, Drill will generate a mutable version of Person called `Person_Mutable` and an
+When building, Drill will generate a mutable version of Person called `PersonMutable` and an
 extension function `Person.mutate()` that works similar to default `apply` from standard library.
 
 You can now "mutate" your data class similar to kotlin `copy(...)` method from within the mutate 
@@ -104,7 +104,7 @@ Check more example usages in the **[test module](https://github.com/minikorp/dri
 Only significant performance impact is one additional object allocation everytime a mutable object is read for the first time in a lazy fashion. This includes nested fields and items in both lists and maps.  
 
 ```kotlin
-object.mutate { // implicit `this` mandatory allocation
+anyObject.mutate { // implicit `this` mandatory allocation
     field = "reference" // no object allocation
     nested.another = "nested" // mutable object `nested` allocated
     list.size // mutable list allocated
@@ -122,7 +122,7 @@ For lists and maps, changing any item in the underlying collection will trigger 
 ## Importing
 
 Add common library and annotation processor (with `kapt` plugin) to your dependencies. 
-You can grab the latest version from github maven repository:
+You can grab the latest version from github maven repository or jitpack:
 
 [![](https://jitpack.io/v/minikorp/drill.svg)](https://jitpack.io/#minikorp/drill)
 

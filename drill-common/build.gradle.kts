@@ -9,6 +9,16 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
+
+    testImplementation("io.strikt:strikt-core:0.24.0")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.6.2")
+}
+
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
 }
 
 tasks {

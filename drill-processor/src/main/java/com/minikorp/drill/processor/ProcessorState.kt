@@ -11,7 +11,7 @@ object ProcessorState {
     private val mutableClasses: MutableMap<TypeName, MutableClassModel> = hashMapOf()
 
     fun registerMutableClass(classModel: MutableClassModel) {
-        mutableClasses[classModel.originalClassName.copy(nullable = false)] = classModel
+        mutableClasses[classModel.originalClassType.copy(nullable = false)] = classModel
     }
 
     fun findMutableClass(typeName: TypeName): MutableClassModel? {

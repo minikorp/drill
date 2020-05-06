@@ -51,6 +51,14 @@ class DrillMap<K, Immutable, Mutable>(
             result = 31 * result + (backing?.hashCode() ?: 0)
             return result
         }
+
+        override fun toString(): String {
+            return if (backing !== UNSET_VALUE) {
+                backing.toQuotedString()
+            } else {
+                ref().toQuotedString()
+            }
+        }
     }
 
     private var backingItems: Any = UNSET_VALUE
@@ -78,7 +86,7 @@ class DrillMap<K, Immutable, Mutable>(
     override fun get(key: K): Mutable? = items[key]?.value
     override fun isEmpty(): Boolean = items.isEmpty()
     override val size: Int get() = items.size
-    override val keys: MutableSet<K> get() = items.keys
+    override val keys: MutableSet<K> get() = ObservableSet(items.keys)
     override val values: MutableCollection<Mutable> get() = items.values.mapTo(ArrayList(items.size)) { it.value }
     override fun clear() = items.clear().also { markDirty() }
 
@@ -86,18 +94,6 @@ class DrillMap<K, Immutable, Mutable>(
         items[key] = Entry(key, freeze(value))
         markDirty()
         return value
-    }
-
-    operator fun set(key: K, value: Immutable) {
-        put(key, value)
-    }
-
-    fun put(key: K, value: Immutable) {
-        items[key] = Entry(key, value).also { markDirty() }
-    }
-
-    fun put(from: Map<out K, Immutable>) {
-        from.mapValuesTo(items) { Entry(it.key, it.value) }.also { markDirty() }
     }
 
     override fun putAll(from: Map<out K, Mutable>) {
@@ -109,34 +105,52 @@ class DrillMap<K, Immutable, Mutable>(
         return e?.value
     }
 
-    override fun toString(): String {
-        return entries.toString()
-    }
-
     override val entries: MutableSet<MutableMap.MutableEntry<K, Mutable>>
         get() {
             return DelegateEntries(items.entries as MutableSet<MutableMap.MutableEntry<K, Mutable>>)
         }
 
-    private inner class DelegateEntries(
-        private val actualSet: MutableSet<MutableMap.MutableEntry<K, Mutable>>
-    ) : MutableSet<MutableMap.MutableEntry<K, Mutable>> by actualSet {
-        override fun add(element: MutableMap.MutableEntry<K, Mutable>): Boolean =
+    operator fun set(key: K, value: Immutable) {
+        putElement(key, value)
+    }
+
+    fun putElement(key: K, value: Immutable): Immutable {
+        items[key] = Entry(key, value).also { markDirty() }
+        return value
+    }
+
+    fun putAllElements(from: Map<out K, Immutable>) {
+        from.mapValuesTo(items) { Entry(it.key, it.value) }.also { markDirty() }
+    }
+
+    fun removeElement(element: Immutable): Immutable? {
+        val entry = items.entries.find { it.value.ref() == element }
+        if (entry != null) {
+            remove(entry.key)
+            markDirty()
+        }
+        return entry?.value?.ref()
+    }
+
+    private open inner class ObservableSet<T>(
+        private val actualSet: MutableSet<T>
+    ) : MutableSet<T> by actualSet {
+        override fun add(element: T): Boolean =
             actualSet.add(element).also { if (it) markDirty() }
 
-        override fun addAll(elements: Collection<MutableMap.MutableEntry<K, Mutable>>): Boolean =
+        override fun addAll(elements: Collection<T>): Boolean =
             actualSet.addAll(elements).also { if (it) markDirty() }
 
-        override fun remove(element: MutableMap.MutableEntry<K, Mutable>): Boolean =
+        override fun remove(element: T): Boolean =
             actualSet.remove(element).also { if (it) markDirty() }
 
-        override fun removeAll(elements: Collection<MutableMap.MutableEntry<K, Mutable>>): Boolean =
+        override fun removeAll(elements: Collection<T>): Boolean =
             actualSet.removeAll(elements).also { if (it) markDirty() }
 
-        override fun retainAll(elements: Collection<MutableMap.MutableEntry<K, Mutable>>): Boolean =
+        override fun retainAll(elements: Collection<T>): Boolean =
             actualSet.retainAll(elements).also { if (it) markDirty() }
 
-        override fun removeIf(filter: Predicate<in MutableMap.MutableEntry<K, Mutable>>): Boolean =
+        override fun removeIf(filter: Predicate<in T>): Boolean =
             actualSet.removeIf(filter).also { if (it) markDirty() }
 
         override fun clear() {
@@ -145,22 +159,57 @@ class DrillMap<K, Immutable, Mutable>(
             }
         }
 
-        override fun iterator(): MutableIterator<MutableMap.MutableEntry<K, Mutable>> {
-            return DelegateIterator(actualSet.iterator())
+        override fun iterator(): MutableIterator<T> {
+            return ObservableIterator(actualSet.iterator())
+        }
+
+        private inner class ObservableIterator(
+            val actualIterator: MutableIterator<T>
+        ) : MutableIterator<T> by actualIterator {
+            override fun remove() {
+                actualIterator.remove().also { markDirty() }
+            }
         }
     }
 
-    private inner class DelegateIterator(
-        val actualIterator: MutableIterator<MutableMap.MutableEntry<K, Mutable>>
-    ) : MutableIterator<MutableMap.MutableEntry<K, Mutable>> by actualIterator {
-        override fun remove() {
-            actualIterator.remove().also { markDirty() }
+    private inner class DelegateEntries(
+        actualSet: MutableSet<MutableMap.MutableEntry<K, Mutable>>
+    ) : ObservableSet<MutableMap.MutableEntry<K, Mutable>>(actualSet)
+
+    override fun toString(): String {
+        val sb = StringBuilder()
+        items.forEach { item ->
+            val existed = ref().containsKey(item.key)
+            if (existed) {
+                val oldValue = ref()[item.key]
+                if (item.value.backing is DrillType<*>) {
+                    if (oldValue != item.value.backing) {
+                        sb.append("\n~ ${item.key.toQuotedString()}: ${item.value.toQuotedString()}")
+                    }
+                } else {
+                    if (oldValue != item.value.backing) {
+                        sb.append(
+                            "\n~ ${item.key.toQuotedString()}: ${oldValue.toQuotedString()} " +
+                                    "-> ${item.value.toQuotedString()}"
+                        )
+                    }
+                }
+            } else {
+                sb.append("\n+ ${item.key.toQuotedString()}: ${item.value}")
+            }
         }
+        //Check for removed keys
+        ref().entries.forEach { entry ->
+            if (!items.containsKey(entry.key)) {
+                sb.append("\n- ${entry.key.toQuotedString()}: ${entry.value.toQuotedString()}")
+            }
+        }
+        return "{${sb.toString().prependIndent("  ")}"
     }
 }
 
 
-fun <K, Mutable, Immutable> Map<K, Immutable>.toMutable(
+fun <K, Immutable, Mutable> Map<K, Immutable>.toMutable(
     parent: DrillType<*>? = null,
     mutate: (container: DrillType<*>, Immutable) -> Mutable,
     freeze: (Mutable) -> Immutable

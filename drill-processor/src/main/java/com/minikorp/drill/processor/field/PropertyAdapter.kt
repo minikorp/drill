@@ -36,14 +36,30 @@ abstract class PropertyAdapter(val sourceProp: MutablePropertyModel) {
         }
     }
 
+    open val isDirtyExpression: CodeBlock
+        get() {
+            val dirtyIf = if (nullable) {
+                "(${sourceProp.name}${call}dirty() ?: true)"
+            } else {
+                "${sourceProp.name}${call}dirty()"
+            }
+            return CodeBlock.of(
+                "($backingPropertyName !== %T && $backingPropertyName !== $refPropertyAccessor) || $dirtyIf",
+                unsetClassName
+            )
+        }
     abstract val freezeExpression: CodeBlock
+    open val stringExpression: CodeBlock
+        get() {
+            return CodeBlock.of("\${${backingPropertyName}}")
+        }
 
     abstract fun generate(builder: TypeSpec.Builder)
 
     /** parent.real_prop */
     val refPropertyAccessor = "${MutableClassModel.SOURCE_PROPERTY}.${sourceProp.name}"
-    val refPropertyKdoc = CodeBlock.of("[%T.${sourceProp.name}]", sourceProp.container.originalClassName)
-    val backingPropertyName = "_${sourceProp.name.capitalize()}"
+    val refPropertyKdoc = CodeBlock.of("[%T.${sourceProp.name}]", sourceProp.container.originalClassType)
+    val backingPropertyName = "_${sourceProp.name}"
     val nullable: Boolean = sourceProp.type.isNullable
 
     /** Safe call ?. or . */
