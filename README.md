@@ -129,8 +129,8 @@ You can grab the latest version from github maven repository or jitpack:
 Github Package Registry:
 
 ```kotlin
-    implementation("com.minikorp:drill:drill-common:$DRILL_VERSION")
-    kapt("com.minikorp:drill-processor:$DRILL_VERSION")
+implementation("com.minikorp:drill:drill-common:$DRILL_VERSION")
+kapt("com.minikorp:drill-processor:$DRILL_VERSION")
 ```
 
 Jitpack: 
