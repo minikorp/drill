@@ -51,6 +51,14 @@ class DrillList<Immutable, Mutable>(
             result = 31 * result + (backing?.hashCode() ?: 0)
             return result
         }
+
+        override fun toString(): String {
+            return if (backing !== UNSET_VALUE) {
+                backing.toQuotedString()
+            } else {
+                ref().toQuotedString()
+            }
+        }
     }
 
     private var backingItems: Any = UNSET_VALUE
@@ -170,7 +178,15 @@ class DrillList<Immutable, Mutable>(
     }
 
     override fun toString(): String {
-        return items.toString()
+        val sb = StringBuilder()
+        items.forEachIndexed { index, entry ->
+            if (entry.backing !== UNSET_VALUE && entry.dirty()) {
+                sb.append("\n~ $index: $entry")
+            } else if (ref().getOrNull(index) !== entry.ref()) {
+                sb.append("\n+ $index: $entry")
+            }
+        }
+        return "[${sb.toString().prependIndent("  ")}\n]"
     }
 }
 

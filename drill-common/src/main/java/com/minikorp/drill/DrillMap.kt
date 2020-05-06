@@ -106,9 +106,7 @@ class DrillMap<K, Immutable, Mutable>(
     }
 
     override val entries: MutableSet<MutableMap.MutableEntry<K, Mutable>>
-        get() {
-            return DelegateEntries(items.entries as MutableSet<MutableMap.MutableEntry<K, Mutable>>)
-        }
+        get() = ObservableSet(items.entries as MutableSet<MutableMap.MutableEntry<K, Mutable>>)
 
     operator fun set(key: K, value: Immutable) {
         putElement(key, value)
@@ -171,10 +169,6 @@ class DrillMap<K, Immutable, Mutable>(
             }
         }
     }
-
-    private inner class DelegateEntries(
-        actualSet: MutableSet<MutableMap.MutableEntry<K, Mutable>>
-    ) : ObservableSet<MutableMap.MutableEntry<K, Mutable>>(actualSet)
 
     override fun toString(): String {
         val sb = StringBuilder()
