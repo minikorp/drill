@@ -124,7 +124,7 @@ For lists and maps, changing any item in the underlying collection will trigger 
 Add common library and annotation processor (with `kapt` plugin) to your dependencies. 
 You can grab the latest version from github maven repository or jitpack:
 
-[![](https://jitpack.io/v/minikorp/drill.svg)](https://jitpack.io/#minikorp/drill)
+[![](https://jitpack.io/v/minikorp/drill.svg)](https://jitpack.io/#minikorp/drill) ![release](https://github.com/minikorp/drill/workflows/release/badge.svg)
 
 Github Package Registry:
 
