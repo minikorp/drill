@@ -9,7 +9,7 @@ data class SimpleClass(
     @DrillProperty(ignore = true)
     val ignoredField: String = ""
 ) {
-    val outsideField = field + "outside"
+    val outsideField = field + "_not_in_constructor"
 
     fun outsideMethod() {
 

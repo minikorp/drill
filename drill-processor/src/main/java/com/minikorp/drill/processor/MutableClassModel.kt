@@ -1,6 +1,7 @@
 package com.minikorp.drill.processor
 
 import com.minikorp.drill.DefaultDrillType
+import com.minikorp.drill.DiffAdapter
 import com.minikorp.drill.DrillType
 import com.minikorp.drill.processor.field.PropertyAdapter
 import com.minikorp.drill.processor.field.SimplePropertyAdapter
@@ -18,7 +19,6 @@ data class MutableClassModel(val typeElement: TypeElement) {
         private const val DRILL_SUFFIX = "Mutable"
         val SOURCE_PROPERTY = "${DrillType<*>::ref.name}()"
         val DIRTY_PROPERTY = "${DrillType<*>::dirty.name}()"
-        val PARENT_PROPERTY = "${DrillType<*>::parent.name}()"
 
         private val baseType = DefaultDrillType::class.asClassName()
         private val parentType = DrillType::class.asClassName().parameterizedBy(STAR)
@@ -45,13 +45,12 @@ data class MutableClassModel(val typeElement: TypeElement) {
 
         // "Best" way to figure out what is actual main data class constructor
         // is to find generated copy method that has same parameters as constructor
-
         val constructors = typeElement.enclosedElements
             .filter { it.isConstructor && it is ExecutableElement }
             .map { it as ExecutableElement }
             .filter { it.parameters.size > 0 }
-        //Data classes generate a no-args constructors skip them
 
+        //Data classes generate a no-args constructors skip them
         if (constructors.size > 1) {
             logWarning(
                 "More than one constructor in data class might lead to bad mutable class generation",
@@ -98,6 +97,7 @@ data class MutableClassModel(val typeElement: TypeElement) {
             //calling proper function
             fileBuilder.addImport(DrillType::class.asClassName().packageName, "toMutable")
             generateMutableClass()
+            generateDiffAdapter()
             fileBuilder.addComment(debug.joinToString(separator = "\n")).build()
         } catch (e: Throwable) {
             fileBuilder.addComment(e.stackTraceString())
@@ -235,6 +235,44 @@ data class MutableClassModel(val typeElement: TypeElement) {
         fileBuilder.addFunction(produceExtension)
         fileBuilder.addFunction(mutateExtension)
         fileBuilder.addFunction(toMutableExtension)
+    }
+
+    private fun generateDiffAdapter() {
+        val diffAdapterClassName = DiffAdapter::class.asClassName()
+
+        //Import function
+        fileBuilder.addImport(diffAdapterClassName.packageName, "diffObjects")
+
+        val body = CodeBlock.builder()
+            .addStatement("val sb = %T()", StringBuilder::class)
+            .apply {
+                properties.forEach { prop ->
+                    addStatement(
+                        "diffObjects(a.${prop.name}, b.${prop.name}," +
+                                " indent)?.let { sb.append(\"\\n\", \"${prop.name}: \",it) }"
+                    )
+                }
+            }
+            .addStatement("return \"{\${sb.toString().prependIndent(indent)}\\n}\"")
+            .build()
+
+        val diffFun = FunSpec.builder("diff")
+            .addModifiers(KModifier.OVERRIDE)
+            .addParameter("a", originalClassType)
+            .addParameter("b", originalClassType)
+            .addParameter("indent", STRING)
+            .returns(STRING.copy(nullable = true))
+            .addCode(body)
+            .build()
+
+        val diffClass = TypeSpec.classBuilder(
+            originalClassType.simpleName +
+                    DiffAdapter.GENERATED_CLASS_SUFFIX
+        ).addSuperinterface(diffAdapterClassName.parameterizedBy(originalClassType))
+            .addFunction(diffFun)
+            .build()
+
+        fileBuilder.addType(diffClass)
     }
 
 }
