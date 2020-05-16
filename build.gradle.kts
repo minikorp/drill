@@ -48,8 +48,8 @@ subprojects {
                         name = "GitHubPackages"
                         url = uri("https://maven.pkg.github.com/minikorp/drill")
                         credentials {
-                            username = localProperties["gpr.username"] as String? ?: System.getenv("username")
-                            password = localProperties["gpr.token"] as String? ?: System.getenv("token")
+                            username = "minikorp"
+                            password = System.getenv("GITHUB_TOKEN")
                         }
                     }
                 }

@@ -30,5 +30,4 @@ jobs:
           cd $GITHUB_WORKSPACE
           sh gradlew publish
         env:
-          username: ${{ secrets.username }}
-          token: ${{ secrets.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
