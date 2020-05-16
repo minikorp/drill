@@ -1,8 +1,9 @@
 package com.minikorp.drill
 
+//TODO: NOT fully implemented
 
 @Suppress("UNCHECKED_CAST")
-class DrillSet<Immutable, Mutable>(
+internal class DrillSet<Immutable, Mutable>(
     ref: Set<Immutable>,
     parent: DrillType<*>?,
     private val mutate: (container: DrillType<*>, Immutable) -> Mutable,
@@ -118,7 +119,7 @@ class DrillSet<Immutable, Mutable>(
     }
 }
 
-fun <Immutable, Mutable> Set<Immutable>.toMutable(
+internal fun <Immutable, Mutable> Set<Immutable>.toMutable(
     parent: DrillType<*>? = null,
     mutate: (container: DrillType<*>, Immutable) -> Mutable,
     freeze: (Mutable) -> Immutable

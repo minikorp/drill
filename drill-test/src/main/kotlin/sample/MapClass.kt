@@ -6,6 +6,12 @@ import com.minikorp.drill.Drill
 data class MapItem(val text: String = "item")
 
 @Drill
+data class MapClassVariants(
+    val mutableMap: MutableMap<String, MapItem> = HashMap(),
+    val hashMap: HashMap<String, MapItem> = HashMap()
+)
+
+@Drill
 data class MapClass(
     val map: Map<String, MapItem> = emptyMap()
 )

@@ -8,13 +8,15 @@ import strikt.assertions.*
 internal class DrillListTest {
 
     private inline fun <T : List<CollectionItem>> T.mutate(
-        crossinline block: DrillList<CollectionItem, CollectionItemMutable>.() -> Unit
+        crossinline block: DrillList<List<CollectionItem>, CollectionItem, CollectionItemMutable>.() -> Unit
     ): List<CollectionItem> {
-        val mutable = this.toMutable(
+        val mutable: DrillList<List<CollectionItem>, CollectionItem, CollectionItemMutable> = this.toMutable(
             parent = null,
+            factory = { it.toList() },
             mutate = { container, it -> it.toMutable(container) },
             freeze = { it.freeze() }
         )
+
         mutable.block()
         return mutable.freeze()
     }

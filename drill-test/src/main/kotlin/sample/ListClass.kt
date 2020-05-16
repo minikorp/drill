@@ -6,6 +6,12 @@ import com.minikorp.drill.Drill
 data class ListItem(val text: String = "item")
 
 @Drill
+data class VariantListsClass(
+    val arrayList: ArrayList<ListItem> = ArrayList(),
+    val mutableList: MutableList<ListItem> = ArrayList()
+)
+
+@Drill
 data class ListClass(
     val list: List<ListItem> = emptyList()
 )

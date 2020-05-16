@@ -3,12 +3,13 @@ package com.minikorp.drill
 import java.util.function.Predicate
 
 @Suppress("UNCHECKED_CAST")
-class DrillMap<K, Immutable, Mutable>(
+class DrillMap<MapType : Map<K, Immutable>, K, Immutable, Mutable>(
     parent: DrillType<*>?,
-    ref: Map<K, Immutable>,
+    ref: MapType,
+    private val factory: (Map<K, Immutable>) -> MapType,
     private val mutate: (container: DrillType<*>, Immutable) -> Mutable,
     private val freeze: (Mutable) -> Immutable
-) : MutableMap<K, Mutable>, DefaultDrillType<Map<K, Immutable>>(ref, parent) {
+) : MutableMap<K, Mutable>, DefaultDrillType<MapType>(ref, parent) {
 
     private inner class Entry(
         override val key: K, ref: Immutable
@@ -40,7 +41,7 @@ class DrillMap<K, Immutable, Mutable>(
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (javaClass != other?.javaClass) return false
-            other as DrillMap<*, *, *>.Entry
+            other as DrillMap<*, *, *, *>.Entry
             if (ref() != other.ref()) return false
             if (backing != other.backing) return false
             return true
@@ -73,11 +74,11 @@ class DrillMap<K, Immutable, Mutable>(
             backingItems = value
         }
 
-    override fun freeze(): Map<K, Immutable> {
+    override fun freeze(): MapType {
         return if (dirty()) {
-            items.mapValuesTo(LinkedHashMap()) { it.value.freeze() }
+            factory(items.mapValues { it.value.freeze() })
         } else {
-            return ref()
+            ref()
         }
     }
 
@@ -203,14 +204,16 @@ class DrillMap<K, Immutable, Mutable>(
 }
 
 
-fun <K, Immutable, Mutable> Map<K, Immutable>.toMutable(
+fun <MapType : Map<K, Immutable>, K, Immutable, Mutable> MapType.toMutable(
     parent: DrillType<*>? = null,
+    factory: (Map<K, Immutable>) -> MapType,
     mutate: (container: DrillType<*>, Immutable) -> Mutable,
     freeze: (Mutable) -> Immutable
-): DrillMap<K, Immutable, Mutable> {
+): DrillMap<MapType, K, Immutable, Mutable> {
     return DrillMap(
         parent = parent,
         ref = this,
+        factory = factory,
         mutate = mutate,
         freeze = freeze
     )

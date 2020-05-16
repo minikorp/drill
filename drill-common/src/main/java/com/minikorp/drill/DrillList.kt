@@ -2,16 +2,18 @@ package com.minikorp.drill
 
 
 @Suppress("UNCHECKED_CAST")
-class DrillList<Immutable, Mutable>(
+class DrillList<ListType : List<Immutable>, Immutable, Mutable>(
     parent: DrillType<*>?,
-    ref: List<Immutable>,
+    ref: ListType,
+    private val factory: (Sequence<Immutable>) -> ListType,
     private val mutate: (container: DrillType<*>, Immutable) -> Mutable,
     private val freeze: (Mutable) -> Immutable
-) : MutableList<Mutable>, DefaultDrillType<List<Immutable>>(ref, parent) {
+) : MutableList<Mutable>, DefaultDrillType<ListType>(ref, parent) {
 
-    constructor(other: DrillList<Immutable, Mutable>) : this(
+    constructor(other: DrillList<ListType, Immutable, Mutable>) : this(
         parent = other.parent(),
         ref = other.ref(),
+        factory = other.factory,
         mutate = other.mutate,
         freeze = other.freeze
     )
@@ -40,7 +42,7 @@ class DrillList<Immutable, Mutable>(
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (javaClass != other?.javaClass) return false
-            other as DrillList<*, *>.Entry
+            other as DrillList<*, *, *>.Entry
             if (ref() != other.ref()) return false
             if (backing != other.backing) return false
             return true
@@ -73,8 +75,13 @@ class DrillList<Immutable, Mutable>(
             backingItems = value
         }
 
-    override fun freeze(): List<Immutable> {
-        return if (dirty()) items.map { it.freeze() } else ref()
+    override fun freeze(): ListType {
+        return if (dirty()) {
+            val out = items.asSequence().map { it.freeze() }
+            return factory(out)
+        } else {
+            ref()
+        }
     }
 
     override operator fun get(index: Int): Mutable {
@@ -190,14 +197,16 @@ class DrillList<Immutable, Mutable>(
     }
 }
 
-fun <Immutable, Mutable> List<Immutable>.toMutable(
+fun <ListType : List<Immutable>, Immutable, Mutable> ListType.toMutable(
     parent: DrillType<*>? = null,
+    factory: (Sequence<Immutable>) -> ListType,
     mutate: (container: DrillType<*>, Immutable) -> Mutable,
     freeze: (Mutable) -> Immutable
-): DrillList<Immutable, Mutable> {
+): DrillList<ListType, Immutable, Mutable> {
     return DrillList(
         parent = parent,
         ref = this,
+        factory = factory,
         mutate = mutate,
         freeze = freeze
     )

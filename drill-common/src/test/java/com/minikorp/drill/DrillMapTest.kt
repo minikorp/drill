@@ -7,10 +7,11 @@ import strikt.assertions.*
 internal class DrillMapTest {
 
     private inline fun Map<String, CollectionItem>.mutate(
-        crossinline block: DrillMap<String, CollectionItem, CollectionItemMutable>.() -> Unit
+        crossinline block: DrillMap<Map<String, CollectionItem>, String, CollectionItem, CollectionItemMutable>.() -> Unit
     ): Map<String, CollectionItem> {
         val mutable = this.toMutable(
             parent = null,
+            factory = { it },
             mutate = { container, it -> it.toMutable(container) },
             freeze = { it.freeze() }
         )

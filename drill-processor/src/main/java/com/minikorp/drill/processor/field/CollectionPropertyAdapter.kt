@@ -10,30 +10,69 @@ import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 @KotlinPoetMetadataPreview
 class CollectionPropertyAdapter(sourceProp: MutablePropertyModel) : PropertyAdapter(sourceProp) {
 
+    class Generator(
+        val factory: (from: ParameterizedTypeName, to: TypeName) -> CodeBlock,
+        val drillTypeGenerator: (from: ParameterizedTypeName, to: TypeName) -> ParameterizedTypeName
+    )
+
     companion object {
-        private val listGenerator = { from: ParameterizedTypeName, to: TypeName ->
+        private val listGenerator = { listType: ParameterizedTypeName,
+                                      mutableType: TypeName ->
             DrillList::class
                 .asClassName()
                 .parameterizedBy(
-                    from.typeArguments[0],
-                    to
-                ).copy(nullable = from.isNullable)
+                    listType.copy(nullable = false), //ListType
+                    listType.typeArguments[0], //Immutable
+                    mutableType //Mutable
+                ).copy(nullable = listType.isNullable) as ParameterizedTypeName
         }
-
-        private val mapGenerator = { from: ParameterizedTypeName, to: TypeName ->
+        private val mapGenerator = { mapType: ParameterizedTypeName, to: TypeName ->
             DrillMap::class
                 .asClassName()
                 .parameterizedBy(
-                    from.typeArguments[0],
-                    from.typeArguments[1],
+                    mapType.copy(nullable = false),
+                    mapType.typeArguments[0],
+                    mapType.typeArguments[1],
                     to
-                ).copy(nullable = from.isNullable)
-
+                ).copy(nullable = mapType.isNullable) as ParameterizedTypeName
         }
 
-        val supportedAdapters = mapOf<TypeName, (ParameterizedTypeName, TypeName) -> TypeName>(
-            LIST to listGenerator,
-            MAP to mapGenerator
+        val supportedAdapters = mapOf<TypeName, Generator>(
+            LIST to Generator(
+                factory = { from, to -> CodeBlock.of("it.toList()") },
+                drillTypeGenerator = listGenerator
+            ),
+            MUTABLE_LIST to Generator(
+                factory = { from, to -> CodeBlock.of("it.toMutableList()") },
+                drillTypeGenerator = listGenerator
+            ),
+            ArrayList::class.asClassName() to Generator(
+                factory = { from, to ->
+                    CodeBlock.of(
+                        "%T().apply { addAll(it) }",
+                        ArrayList::class.asClassName().parameterizedBy(from.typeArguments[0])
+                    )
+                },
+                drillTypeGenerator = listGenerator
+            ),
+            MAP to Generator(
+                factory = { from, to -> CodeBlock.of("it") },
+                drillTypeGenerator = mapGenerator
+            ),
+            MUTABLE_MAP to Generator(
+                factory = { from, to -> CodeBlock.of("it.toMutableMap()") },
+                drillTypeGenerator = mapGenerator
+            ),
+            HashMap::class.asClassName() to Generator(
+                factory = { from, to ->
+                    CodeBlock.of(
+                        "%T(it)",
+                        HashMap::class.asClassName()
+                    )
+                },
+                drillTypeGenerator = mapGenerator
+            )
+
         )
 
         fun supportsType(type: TypeName): Boolean {
@@ -53,7 +92,6 @@ class CollectionPropertyAdapter(sourceProp: MutablePropertyModel) : PropertyAdap
         )
 
     override fun generate(builder: TypeSpec.Builder) {
-
         val accessorField = PropertySpec.builder(sourceProp.name, recursiveType.type)
             .addKdoc(refPropertyKdoc)
             .mutable(false)
@@ -107,28 +145,32 @@ class CollectionPropertyAdapter(sourceProp: MutablePropertyModel) : PropertyAdap
         }
 
         if (type is ParameterizedTypeName) {
-            val adapter = supportedAdapters[type.rawType]
-            if (adapter != null) {
+            val generator = supportedAdapters[type.rawType]
+            if (generator != null) {
                 val param = generateRecursiveType(type.typeArguments.last())
-                val collectionType = adapter(type, param.type)
+                val collectionType = generator.drillTypeGenerator(type, param.type)
+
                 return RecursiveType(
                     type = collectionType,
-                    mutate = CodeBlock.of(
-                        "it${call}toMutable(container, " +
-                                "mutate={ container, it -> ${param.mutate} }," +
-                                "freeze={ ${param.freeze} } )"
-                    ),
+                    mutate = CodeBlock.builder()
+                        .add("it${call}toMutable(container,\n")
+                        .indent()
+                        .add("factory={ ").add(generator.factory(type, param.type)).add(" },\n")
+                        .add("mutate={ container, it -> ${param.mutate} },\n")
+                        .add("freeze={ ${param.freeze} })")
+                        .unindent()
+                        .build(),
                     freeze = CodeBlock.of("it${call}freeze()")
                 )
             }
         }
 
-        //Any other type that can't be made mutable or replace
+        //Any other type that can't be made mutable
         return RecursiveType(
             type = type,
             mutate = CodeBlock.of("it"),
             freeze = CodeBlock.of("it")
-        ) //Done
+        )
     }
 
     data class RecursiveType(

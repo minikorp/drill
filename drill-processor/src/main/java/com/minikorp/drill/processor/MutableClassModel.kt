@@ -180,7 +180,6 @@ data class MutableClassModel(val typeElement: TypeElement) {
     }
 
     private fun generateMutateExtension(fileBuilder: FileSpec.Builder) {
-
         val toMutableExtension = FunSpec.builder("toMutable")
             .returns(mutableClassType)
             .receiver(originalClassType)
