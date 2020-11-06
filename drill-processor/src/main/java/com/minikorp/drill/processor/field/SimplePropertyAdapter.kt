@@ -17,10 +17,10 @@ class SimplePropertyAdapter(sourceProp: MutablePropertyModel) : PropertyAdapter(
     override val isDirtyExpression: CodeBlock
         get() = CodeBlock.of("$refPropertyAccessor !== ${sourceProp.name}")
 
-    override val stringExpression: CodeBlock
+    override val stringExpression: String
         get() {
-            val quote = if (sourceProp.type == STRING) "\\\"" else ""
-            return CodeBlock.of("$quote\${$refPropertyAccessor}$quote -> $quote\${${sourceProp.name}}$quote")
+            val q = if (sourceProp.type == STRING) "\\\"" else ""
+            return "$q\${$refPropertyAccessor}$q·->·$q\${${sourceProp.name}}$q"
         }
 
     override fun generate(builder: TypeSpec.Builder) {

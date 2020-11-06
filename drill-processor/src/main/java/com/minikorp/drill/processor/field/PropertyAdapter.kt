@@ -49,9 +49,9 @@ abstract class PropertyAdapter(val sourceProp: MutablePropertyModel) {
             )
         }
     abstract val freezeExpression: CodeBlock
-    open val stringExpression: CodeBlock
+    open val stringExpression: String
         get() {
-            return CodeBlock.of("\${${backingPropertyName}}")
+            return "\${${backingPropertyName}}"
         }
 
     abstract fun generate(builder: TypeSpec.Builder)

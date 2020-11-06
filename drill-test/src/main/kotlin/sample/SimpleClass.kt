@@ -18,5 +18,6 @@ data class SimpleClass(
 
 @Drill
 data class SimpleClassNullable(
-    val field: String? = null
+    val field: String? = null,
+    val reallyLongNameFieldThatWillCauseLineWrapping: String = ""
 )

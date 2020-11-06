@@ -4,7 +4,6 @@ import com.minikorp.drill.DefaultDrillType
 import com.minikorp.drill.DiffAdapter
 import com.minikorp.drill.DrillType
 import com.minikorp.drill.processor.field.PropertyAdapter
-import com.minikorp.drill.processor.field.SimplePropertyAdapter
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
@@ -161,13 +160,7 @@ data class MutableClassModel(val typeElement: TypeElement) {
                     .filter { !it.sourceProp.ignore }//Don't generate for ignored fields
                     .forEach { adapter ->
                         beginControlFlow("if (${adapter.isDirtyExpression})")
-                        addCode("sb.append(")
-                        if (adapter is SimplePropertyAdapter) {
-                            addCode(""""\n", "${adapter.sourceProp.name}: ${adapter.stringExpression}"""")
-                        } else {
-                            addCode(""""\n", "${adapter.sourceProp.name}: ", "${adapter.stringExpression}"""")
-                        }
-                        addCode(")")
+                        addStatement("sb.append(\"\\n\", \"${adapter.sourceProp.name}:·${adapter.stringExpression}\")")
                         endControlFlow()
                     }
             }
