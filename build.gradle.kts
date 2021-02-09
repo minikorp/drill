@@ -2,7 +2,7 @@ import java.util.*
 
 plugins {
     java
-    kotlin("jvm") version "1.4.10"
+    kotlin("jvm") version "1.4.30"
     `maven-publish`
 }
 
@@ -68,7 +68,7 @@ subprojects {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    testCompile("junit", "junit", "4.12")
+    testImplementation("junit", "junit", "4.12")
 
     // Make the root project archives configuration depend on every subproject
     subprojects.forEach {
